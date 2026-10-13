@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080915;
+  --foreground: #f3f4f8;
+  --card: #0d0f22;
+  --card-border: rgba(140, 155, 240, 0.1);
+  --card-border-hover: rgba(150, 165, 255, 0.22);
+  --accent-linear: #5643CC;
+  --accent-linear-hover: #673FD7;
+  --text-muted: #8c93ad;
+  --text-dim: #616782;
+  --brand-gradient: linear-gradient(90deg, #455EB5 0%, #5643CC 50%, #673FD7 100%);
+}
+
+body {
+  background-color: #050506;
+  color: #f3f4f8;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Linear 2021-2023 Lighting & Atmosphere */
+.linear-glow-hero {
+  background: radial-gradient(circle 900px at 50% -120px, rgba(110, 122, 220, 0.28), rgba(40, 48, 120, 0.15) 55%, transparent 75%),
+    radial-gradient(circle 650px at 50% 120px, rgba(94, 106, 210, 0.2), transparent 65%);
+}
+
+.linear-ambient-spotlight {
+  background: radial-gradient(ellipse 75% 55% at 50% 50%, rgba(94, 106, 210, 0.16), rgba(30, 36, 95, 0.08) 60%, transparent 80%);
+}
+
+.linear-card {
+  background: rgba(13, 16, 38, 0.7);
+  border: 1px solid rgba(140, 155, 240, 0.1);
+  backdrop-filter: blur(16px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.linear-card:hover {
+  border-color: rgba(150, 165, 255, 0.24);
+  background: rgba(17, 21, 48, 0.85);
+  box-shadow: 0 12px 32px -10px rgba(0, 4, 25, 0.6), 0 0 16px -2px rgba(94, 106, 210, 0.15);
+}
+
+/* Linear Signature 3-Color Gradient Buttons (#455EB5 -> #5643CC -> #673FD7) */
+.linear-button-primary {
+  background: linear-gradient(90deg, #455EB5 50%, #673FD7 100%);
+
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.linear-button-primary:hover {
+  background: linear-gradient(90deg, #4e67c4 50%, #744be6 100%);
+
+  transform: translateY(-1px);
+}
+
+.linear-button-primary:active {
+  background: linear-gradient(90deg, #3f55a7 0%, #4e3cb8 50%, #5d38c2 100%);
+  transform: translateY(0);
+}
+
+.linear-button-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f3f4f8;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.linear-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+.bg-linear-brand {
+  background: linear-gradient(90deg, #455EB5 0%, #5643CC 50%, #673FD7 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, rgba(220, 226, 255, 0.75) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

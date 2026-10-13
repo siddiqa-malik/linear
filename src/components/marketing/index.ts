@@ -1,0 +1,10 @@
+export { Navbar } from "./Navbar";
+export { Footer } from "./Footer";
+export { HeroSection } from "./HeroSection";
+export { SocialProof } from "./SocialProof";
+export { BentoSection } from "./BentoSection";
+export { IssueTrackingSection } from "./IssueTrackingSection";
+export { CyclesSection } from "./CyclesSection";
+export { RoadmapsSection } from "./RoadmapsSection";
+export { WorkflowsSection } from "./WorkflowsSection";
+export { CallToActionSection } from "./CallToActionSection";
