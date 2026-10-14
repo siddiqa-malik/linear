@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Navbar } from "@/components/marketing/Navbar";
+import { Navbar } from "@/components/common/Navbar";
 import { Footer } from "@/components/marketing/Footer";
 
 export default function MarketingLayout({
@@ -10,9 +10,9 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#050506] text-[#f7f8f8] flex flex-col selection:bg-[#5e6ad2] selection:text-white">
+    <div className="relative min-h-screen text-[#f7f8f8] flex flex-col selection:bg-[#5e6ad2] selection:text-white bg-transparent">
       <Navbar />
-      <div className="flex-1">
+      <div className="flex-1 w-full">
         {children}
       </div>
       <Footer />

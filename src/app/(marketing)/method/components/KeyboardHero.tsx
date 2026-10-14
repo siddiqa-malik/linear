@@ -99,7 +99,7 @@ export function KeyboardHero() {
   };
 
   return (
-    <section className="relative isolate overflow-hidden pt-12 pb-24 md:pt-16 md:pb-32 text-center">
+    <section className="relative isolate overflow-hidden pt-24 pb-24 md:pt-28 md:pb-32 text-center">
       {/* Ambient Top Glow */}
       <div
         aria-hidden="true"

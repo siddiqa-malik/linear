@@ -4,7 +4,7 @@ import React from "react";
 
 export function IntegrationHero() {
   return (
-    <section className="relative isolate overflow-hidden pt-10 pb-16 md:pt-16 md:pb-28 text-center bg-[#050506]">
+    <section className="relative isolate overflow-hidden pt-20 pb-16 md:pt-24 md:pb-28 text-center bg-[#050506]">
       {/* Hero Panoramic Graphic Asset - Scaled up to match screenshot */}
       <div className="mx-auto max-w-9xl px-4 mb-10 relative z-10 flex justify-center">
         <img

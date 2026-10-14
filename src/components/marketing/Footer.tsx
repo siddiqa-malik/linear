@@ -1,78 +1,113 @@
-﻿import Link from "next/link";
-import { LinearLogo } from "../icons/LinearLogo";
+"use client";
 
-export function Footer() {
+import React from "react";
+import Link from "next/link";
+import { LinearLogo } from "../icons/LinearLogo";
+import { Twitter, Github } from "../icons/SocialIcons";
+import { Globe } from "lucide-react";
+
+export function Footer({ className = "" }: { className?: string }) {
   const footerSections = [
     {
       title: "Product",
       links: [
-        { label: "Features", href: "#features" },
-        { label: "Cycles", href: "#method" },
-        { label: "Roadmaps", href: "#roadmaps" },
-        { label: "Changelog", href: "#changelog" },
-        { label: "Integrations", href: "#integrations" },
-        { label: "Method", href: "#method" },
+        { label: "Features", href: "/features" },
+        { label: "Integrations", href: "/integrations" },
+        { label: "Pricing", href: "/pricing" },
+        { label: "Changelog", href: "/changelog" },
+        { label: "Docs", href: "#" },
+        { label: "Linear Method", href: "/method" },
+        { label: "Direction 1", href: "#" },
       ],
     },
     {
       title: "Company",
       links: [
-        { label: "About", href: "#" },
-        { label: "Blog", href: "#" },
-        { label: "Careers", href: "#" },
-        { label: "Customers", href: "#customers" },
+        { label: "About us", href: "#" },
+        { label: "Blog", href: "/blog" },
+        { label: "Careers", href: "/careers" },
+        { label: "Customers", href: "/customers" },
         { label: "Brand", href: "#" },
-        { label: "Contact", href: "#" },
       ],
     },
     {
       title: "Resources",
       links: [
         { label: "Community", href: "#" },
-        { label: "Status", href: "#" },
-        { label: "Documentation", href: "#" },
-        { label: "Privacy Policy", href: "#" },
-        { label: "Terms of Service", href: "#" },
+        { label: "Contact", href: "#" },
+        { label: "DPA", href: "#" },
+        { label: "Terms of service", href: "#" },
+        { label: "Report a vulnerability", href: "#" },
       ],
     },
     {
       title: "Developers",
       links: [
-        { label: "API Reference", href: "#" },
+        { label: "API", href: "#" },
+        { label: "Status", href: "#" },
         { label: "GitHub", href: "https://github.com" },
-        { label: "Twitter", href: "https://twitter.com" },
-        { label: "Discord", href: "#" },
+        { label: "Magic", href: "#" },
       ],
     },
   ];
 
   return (
-    <footer className="border-t border-white/[0.06] bg-[#07080a] py-16 text-xs text-[#8a8f98]">
+    <footer
+      className={`border-t border-white/[0.06] bg-transparent py-14 sm:py-20 text-xs text-[#8a8f98] ${className}`}
+    >
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
-          {/* Logo & Copyright */}
-          <div className="col-span-2 md:col-span-1 space-y-4">
+          {/* Logo, Worldwide tag, and Social Icons */}
+          <div className="col-span-2 md:col-span-1 flex flex-col justify-between h-full min-h-[160px]">
             <div className="flex items-center gap-2 text-white">
               <LinearLogo className="h-4.5 w-4.5 text-white" />
-              <span className="font-semibold text-sm">Linear</span>
+              <span className="text-[13px] text-[#c0c4d0] font-normal tracking-tight">
+                Linear - Designed Worldwide
+              </span>
             </div>
-            <p className="text-[11px] leading-relaxed text-[#62666d]">
-              Linear is designed for high-performance software teams.
-              <br />
-              © 2026 Linear Orbit, Inc.
-            </p>
+
+            {/* Social Media Icons */}
+            <div className="flex items-center gap-4 text-[#8a8f98] mt-8 md:mt-auto">
+              <a
+                href="https://twitter.com/linear"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+                aria-label="Twitter"
+              >
+                <Twitter className="w-4 h-4 fill-current" />
+              </a>
+              <a
+                href="https://github.com/linear"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+                aria-label="GitHub"
+              >
+                <Github className="w-4 h-4 fill-current" />
+              </a>
+              <a
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="Global Community"
+              >
+                <Globe className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
-          {/* Nav Columns */}
+          {/* 4 Navigation Columns matching Linear Figma screenshot */}
           {footerSections.map((section) => (
             <div key={section.title} className="space-y-3">
-              <h4 className="font-semibold text-white tracking-tight">{section.title}</h4>
+              <h4 className="text-[13px] font-medium text-white tracking-tight">
+                {section.title}
+              </h4>
               <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="transition hover:text-white"
+                      className="text-[12px] sm:text-[13px] text-[#8a8f98] hover:text-white transition-colors"
                     >
                       {link.label}
                     </Link>
