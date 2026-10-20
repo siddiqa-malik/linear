@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@/types/user";
@@ -11,6 +11,11 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: (
+    googleData: { name: string; email: string; avatar?: string },
+    options?: { isSignUp?: boolean }
+  ) => Promise<{ isNewUser?: boolean }>;
+  checkEmailExists: (email: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -33,16 +38,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const res = await api.get("/auth/me");
-      if (res?.user) {
-        setUser(res.user);
+      const userData = res?.data || res?.user;
+      if (userData) {
+        if (typeof window !== "undefined" && userData.email) {
+          sessionStorage.setItem("recent_auth_email", userData.email);
+        }
+        setUser({
+          _id: userData._id || userData.id,
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.avatar,
+          role: userData.role || "user",
+          createdAt: userData.createdAt || new Date().toISOString(),
+        });
         setTokenState(currentToken);
       } else {
         removeAuthToken();
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("recent_auth_email");
+        }
         setUser(null);
         setTokenState(null);
       }
     } catch {
       removeAuthToken();
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("recent_auth_email");
+      }
       setUser(null);
       setTokenState(null);
     } finally {
@@ -58,12 +80,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const res = await api.post("/auth/login", { email, password });
-      if (res?.token && res?.user) {
-        setAuthToken(res.token);
-        setTokenState(res.token);
-        setUser(res.user);
+      const token = res?.data?.token || res?.token;
+      const userData = res?.data?.user || res?.user;
+
+      if (token && userData) {
+        if (typeof window !== "undefined" && userData.email) {
+          sessionStorage.setItem("recent_auth_email", userData.email);
+        }
+        setAuthToken(token);
+        setTokenState(token);
+        setUser({
+          _id: userData.id || userData._id,
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.avatar,
+          role: userData.role || "user",
+          createdAt: userData.createdAt || new Date().toISOString(),
+        });
       } else {
-        throw new Error(res?.message || "Invalid login response");
+        throw new Error(res?.message || "Invalid login response from backend");
       }
     } finally {
       setIsLoading(false);
@@ -73,11 +108,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await api.post("/auth/register", { name, email, password });
-      if (res?.token && res?.user) {
-        setAuthToken(res.token);
-        setTokenState(res.token);
-        setUser(res.user);
+      // 1. Create user in MongoDB database via TaskFlow backend
+      await api.post("/auth/register", { name, email, password });
+
+      // 2. Obtain real JWT token and session from backend
+      const loginRes = await api.post("/auth/login", { email, password });
+      const token = loginRes?.data?.token || loginRes?.token;
+      const userData = loginRes?.data?.user || loginRes?.user;
+
+      if (token && userData) {
+        if (typeof window !== "undefined" && userData.email) {
+          sessionStorage.setItem("recent_auth_email", userData.email);
+        }
+        setAuthToken(token);
+        setTokenState(token);
+        setUser({
+          _id: userData.id || userData._id,
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.avatar,
+          role: userData.role || "user",
+          createdAt: userData.createdAt || new Date().toISOString(),
+        });
+      } else {
+        throw new Error(loginRes?.message || "Account created, but failed to log in");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const res = await api.post("/auth/check-email", { email: email.trim().toLowerCase() });
+      return !!res?.exists;
+    } catch {
+      return false;
+    }
+  };
+
+  const loginWithGoogle = async (
+    googleData: { name: string; email: string; avatar?: string },
+    options?: { isSignUp?: boolean }
+  ): Promise<{ isNewUser?: boolean }> => {
+    setIsLoading(true);
+    try {
+      const isSignUp = !!options?.isSignUp;
+      const res = await api.post("/auth/google", {
+        name: googleData.name,
+        email: googleData.email,
+        avatar: googleData.avatar,
+        isSignUp,
+      });
+
+      const token = res?.data?.token || res?.token;
+      const userData = res?.data?.user || res?.user;
+      const isNewUser = !!res?.data?.isNewUser;
+
+      if (token && userData) {
+        const finalEmail = userData.email || googleData.email;
+        if (typeof window !== "undefined" && finalEmail) {
+          sessionStorage.setItem("recent_auth_email", finalEmail);
+        }
+        setAuthToken(token);
+        setTokenState(token);
+        setUser({
+          _id: userData.id || userData._id,
+          name: userData.name || googleData.name,
+          email: userData.email || googleData.email,
+          avatar: googleData.avatar || userData.avatar,
+          role: userData.role || "user",
+          createdAt: userData.createdAt || new Date().toISOString(),
+        });
+        return { isNewUser };
+      } else {
+        throw new Error(res?.message || "Failed to authenticate Google user with backend database");
       }
     } finally {
       setIsLoading(false);
@@ -86,6 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     removeAuthToken();
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("recent_auth_email");
+    }
     setUser(null);
     setTokenState(null);
   };
@@ -99,6 +207,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         register,
+        loginWithGoogle,
+        checkEmailExists,
         logout,
         refreshUser,
       }}

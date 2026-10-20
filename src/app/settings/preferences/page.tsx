@@ -75,7 +75,7 @@ export default function SettingsPreferencesPage() {
         <div className="grid grid-cols-2 gap-3 text-[12px]">
           <div className="flex items-center justify-between p-2 rounded bg-white/[0.02]">
             <span className="text-[#8a8f98]">New Issue</span>
-            <Kbd>C</Kbd>
+            <Kbd>N</Kbd>
           </div>
           <div className="flex items-center justify-between p-2 rounded bg-white/[0.02]">
             <span className="text-[#8a8f98]">Command Menu</span>

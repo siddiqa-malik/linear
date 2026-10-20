@@ -8,15 +8,13 @@ export function HeroSection() {
   return (
     <section className="relative isolate overflow-hidden pt-16 pb-24 md:pt-24 md:pb-36 bg-[#080915]">
       {/* 1. Primary Top Center Linear Aurora & Spotlight Beam */}
-      <GlowEffect color="#455EB5" variant="hero" opacity={0.95} />
+
 
       {/* 2. Left Atmospheric Flanking Glow Orb */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-24 top-20 w-[520px] h-[520px] rounded-full blur-[110px] z-0 opacity-60"
-        style={{
-          background: "radial-gradient(circle, #455EB5 0%, rgba(69, 94, 181, 0.4) 50%, transparent 80%)",
-        }}
+
       />
 
       {/* 3. Right Atmospheric Flanking Glow Orb */}

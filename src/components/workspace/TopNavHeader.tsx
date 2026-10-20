@@ -110,7 +110,7 @@ export function TopNavHeader({
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New issue</span>
-          <Kbd className="bg-black/30 border-white/20 text-[10px] ml-1">C</Kbd>
+          <Kbd className="bg-black/30 border-white/20 text-[10px] ml-1">N</Kbd>
         </Button>
       </div>
     </div>

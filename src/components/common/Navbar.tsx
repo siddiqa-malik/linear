@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { LinearLogo } from "@/components/icons/LinearLogo";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export function Navbar({ className = "" }: { className?: string }) {
+  const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -134,18 +136,30 @@ export function Navbar({ className = "" }: { className?: string }) {
 
         {/* Right: Actions */}
         <div className="hidden items-center gap-4 md:flex">
-          <Link
-            href="/login"
-            className="text-[13px] font-normal text-[#8a8f98] transition hover:text-white"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full px-4 py-1.5 text-[13px] font-medium text-white bg-[#5e6ad2] hover:bg-[#6e7bf0] shadow-[0_2px_12px_rgba(94,106,210,0.35)] transition-all"
-          >
-            Sign up
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/projects"
+              className="group flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-medium text-white bg-[#5e6ad2] hover:bg-[#6e7bf0] shadow-[0_2px_12px_rgba(94,106,210,0.35)] transition-all"
+            >
+              <span>Open workspace</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-[13px] font-normal text-[#8a8f98] transition hover:text-white"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full px-4 py-1.5 text-[13px] font-medium text-white bg-[#5e6ad2] hover:bg-[#6e7bf0] shadow-[0_2px_12px_rgba(94,106,210,0.35)] transition-all"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -194,20 +208,33 @@ export function Navbar({ className = "" }: { className?: string }) {
               Careers
             </Link>
             <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-sm text-[#8a8f98] hover:text-white"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-sm text-white font-medium bg-[#5e6ad2] px-3.5 py-1 rounded-full"
-              >
-                Sign up
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/projects"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center text-sm text-white font-medium bg-[#5e6ad2] px-4 py-2 rounded-full flex items-center justify-center gap-2"
+                >
+                  <span>Open workspace</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-sm text-[#8a8f98] hover:text-white"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-sm text-white font-medium bg-[#5e6ad2] px-3.5 py-1 rounded-full"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

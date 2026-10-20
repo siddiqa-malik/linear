@@ -73,9 +73,9 @@ export function PricingCards() {
             }}
           >
             {/* Ambient top light reflection */}
-            <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b  from-[#7877C6]/30 to-transparent flex item-center justify-center flex-col pointer-events-none" />
+            <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b  from-[#7877C6]/30 to-transparent  pointer-events-none" />
 
-            < div className=" ">
+            < div>
               <h3 className="text-[15px] font-semibold text-white/90">Standard</h3>
 
               <div className="flex items-center  gap-2 mt-2">

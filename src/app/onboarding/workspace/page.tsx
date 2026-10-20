@@ -1,1 +1,5 @@
-export { default } from "../../workspace/new/page";
+import { redirect } from "next/navigation";
+
+export default function OnboardingWorkspaceRedirect() {
+  redirect("/onboarding");
+}

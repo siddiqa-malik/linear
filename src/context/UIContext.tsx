@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { UserSettings } from "@/types/user";
@@ -10,12 +10,14 @@ interface UIContextType {
   sidebarCollapsed: boolean;
   commandPaletteOpen: boolean;
   createModalOpen: boolean;
+  createProjectModalOpen: boolean;
   activeIssueId: string | null;
   setTheme: (theme: "dark" | "light" | "system") => void;
   setCompactView: (compact: boolean) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setCreateModalOpen: (open: boolean) => void;
+  setCreateProjectModalOpen: (open: boolean) => void;
   setActiveIssueId: (id: string | null) => void;
 }
 
@@ -27,31 +29,42 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [createModalOpen, setCreateModalOpen] = useState<boolean>(false);
+  const [createProjectModalOpen, setCreateProjectModalOpen] = useState<boolean>(false);
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
 
-  // Global Keyboard shortcuts (⌘K for command palette, C for new issue)
+  // Global Keyboard shortcuts (⌘K for command palette, N for new issue)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing inside an input or textarea
+      // Handle Ctrl/Cmd modifier shortcuts first
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key.toLowerCase() === "k") {
+          e.preventDefault();
+          setCommandPaletteOpen((prev) => !prev);
+        }
+        // Never hijack Ctrl+C / Cmd+C (Copy) or any other modifier combos
+        return;
+      }
+
+      // Don't trigger if user is typing inside an input, textarea or editable field
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
-        target.isContentEditable
+        target.isContentEditable ||
+        target.closest?.("input, textarea, [contenteditable='true']")
       ) {
         return;
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen((prev) => !prev);
-      } else if (e.key === "c" || e.key === "C") {
+      // Single-key shortcut: 'N' for New Issue
+      if (!e.altKey && (e.key === "n" || e.key === "N")) {
         e.preventDefault();
         setCreateModalOpen(true);
       } else if (e.key === "Escape") {
         setActiveIssueId(null);
         setCommandPaletteOpen(false);
         setCreateModalOpen(false);
+        setCreateProjectModalOpen(false);
       }
     };
 
@@ -77,12 +90,14 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         sidebarCollapsed,
         commandPaletteOpen,
         createModalOpen,
+        createProjectModalOpen,
         activeIssueId,
         setTheme,
         setCompactView,
         setSidebarCollapsed,
         setCommandPaletteOpen,
         setCreateModalOpen,
+        setCreateProjectModalOpen,
         setActiveIssueId,
       }}
     >

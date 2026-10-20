@@ -1,12 +1,14 @@
-﻿import { getInitials } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function Avatar({
   name,
+  src,
   size = "sm",
   className,
 }: {
   name?: string;
+  src?: string;
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }) {
@@ -16,6 +18,21 @@ export function Avatar({
     md: "h-7 w-7 text-xs",
     lg: "h-9 w-9 text-sm",
   };
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name || "User Avatar"}
+        referrerPolicy="no-referrer"
+        className={cn(
+          "shrink-0 rounded-full object-cover border border-white/10 select-none",
+          sizeMap[size],
+          className
+        )}
+      />
+    );
+  }
 
   return (
     <div

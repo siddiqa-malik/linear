@@ -1,4 +1,4 @@
-﻿const API_BASE_URL =
+const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export const getAuthToken = (): string | null => {
@@ -42,7 +42,11 @@ export async function apiRequest<T = any>(
   if (!response.ok) {
     const errorMsg =
       data?.message || data?.error || `Request failed with status ${response.status}`;
-    throw new Error(errorMsg);
+    const error: any = new Error(errorMsg);
+    error.status = response.status;
+    error.data = data;
+    error.notRegistered = data?.notRegistered;
+    throw error;
   }
 
   return data;

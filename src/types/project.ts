@@ -9,6 +9,9 @@ export interface Project {
   description?: string;
   ownerId: string | UserSummary;
   status: ProjectStatus;
+  projectStatus?: string;
+  priority?: "none" | "urgent" | "high" | "medium" | "low" | string;
+  lead?: { name?: string; email?: string; initials?: string } | string;
   startDate?: string;
   dueDate?: string;
   createdAt: string;

@@ -8,24 +8,20 @@ export function HeroSection() {
   return (
     <section className="relative isolate overflow-hidden pt-16 pb-24 md:pt-24 md:pb-36 bg-[#080915]">
       {/* 1. Primary Top Center Linear Aurora & Spotlight Beam */}
-      <GlowEffect color="#455EB5" variant="hero" opacity={0.95} />
+
 
       {/* 2. Left Atmospheric Flanking Glow Orb */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-24 top-20 w-[520px] h-[520px] rounded-full blur-[110px] z-0 opacity-60"
-        style={{
-          background: "radial-gradient(circle, #455EB5 0%, rgba(69, 94, 181, 0.4) 50%, transparent 80%)",
-        }}
+
       />
 
       {/* 3. Right Atmospheric Flanking Glow Orb */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-24 top-28 w-[520px] h-[520px] rounded-full blur-[110px] z-0 opacity-60"
-        style={{
-          background: "radial-gradient(circle, #455EB5 0%, rgba(69, 94, 181, 0.4) 50%, transparent 80%)",
-        }}
+
       />
 
       <div className="mx-auto max-w-6xl px-6 text-center relative z-10">
@@ -68,18 +64,16 @@ export function HeroSection() {
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -inset-14 rounded-3xl blur-[90px] z-0 opacity-80"
-            style={{
-              background: "radial-gradient(ellipse 90% 80% at 50% 40%, #455EB5 0%, rgba(69, 94, 181, 0.5) 45%, rgba(69, 94, 181, 0.15) 75%, transparent 90%)",
-            }}
+
           />
 
           {/* Layer B: Centered High-Power Spotlight */}
           <GlowEffect
-            color="#455EB5"
+            color="#4547b5ff"
             variant="spotlight"
-            size="2xl"
+            size="7xl"
             blur="xl"
-            opacity={0.85}
+            opacity={0.75}
             className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           />
 
@@ -87,13 +81,11 @@ export function HeroSection() {
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2 w-[900px] max-w-[95vw] h-[160px] rounded-full blur-[65px] z-0 opacity-75"
-            style={{
-              background: "radial-gradient(ellipse 90% 50% at 50% 50%, #5e77db 0%, #455EB5 45%, transparent 80%)",
-            }}
+
           />
 
           {/* Window Shell Frame with Illuminated Borders and Deep Ambient Rim */}
-          <div className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-xl border border-[#455EB5]/45 bg-[#0a0c1e] shadow-[0_0_60px_-10px_rgba(69,94,181,0.5),0_25px_60px_-15px_rgba(0,0,0,0.9)] ring-1 ring-white/10 transition-shadow duration-300 hover:shadow-[0_0_90px_-10px_rgba(69,94,181,0.7),0_25px_60px_-15px_rgba(0,0,0,0.95)]">
+          <div className="relative z-10 mx-auto max-w-5xl overflow-hidden ">
             <img
               src="/hero image.png"
               alt="Linear Workspace Window"

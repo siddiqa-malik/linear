@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { Modal } from "../ui/Modal";
@@ -24,7 +24,7 @@ export function CommandPalette() {
     {
       id: "create-issue",
       title: "Create new issue...",
-      shortcut: "C",
+      shortcut: "N",
       icon: Plus,
       action: () => {
         setCommandPaletteOpen(false);
