@@ -16,8 +16,8 @@ interface MembersTableProps {
 
 export function MembersTable({ members, onRemove }: MembersTableProps) {
   return (
-    <div className="border border-white/[0.06] rounded-xl overflow-hidden bg-[#0d0e12]/60 divide-y divide-white/[0.04]">
-      <div className="grid grid-cols-12 gap-3 px-4 py-2.5 bg-white/[0.02] text-[11px] font-medium text-[#8a8f98] uppercase tracking-wider font-mono">
+    <div className="border border-[#25283e] rounded-xl overflow-hidden bg-[#161726] divide-y divide-[#25283e]/50">
+      <div className="grid grid-cols-12 gap-3 px-4 py-2.5 bg-[#121320] text-[11px] font-medium text-[#8b90a4] uppercase tracking-wider font-mono">
         <div className="col-span-6">Member</div>
         <div className="col-span-3">Role</div>
         <div className="col-span-3 text-right">Actions</div>

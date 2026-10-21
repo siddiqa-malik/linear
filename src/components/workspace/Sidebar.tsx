@@ -43,7 +43,9 @@ export function Sidebar() {
 
   const workspaceName = currentWorkspace
     ? sanitizeWorkspaceName(currentWorkspace.name)
-    : "Figr";
+    : user?.name
+    ? `${user.name}'s Workspace`
+    : "My Workspace";
 
   const handleSwitchWorkspace = (ws: any) => {
     setCurrentWorkspace(ws);
@@ -54,7 +56,9 @@ export function Sidebar() {
   const handleLogout = () => {
     setIsProfileMenuOpen(false);
     logout();
-    router.push("/");
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
   };
 
   // Keyboard shortcut listener for ⌥ ⇧ Q (Alt+Shift+Q) logout
@@ -77,7 +81,9 @@ export function Sidebar() {
       .join("")
       .toUpperCase()
       .slice(0, 2)
-    : "MG";
+    : user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : "U";
 
   return (
     <aside className="w-56 h-screen flex flex-col bg-[#0f1017] border-r border-white/[0.06] text-[#e6e7ee] select-none text-[13px] shrink-0">
@@ -299,7 +305,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => {
                   setIsWorkspaceMenuOpen(false);
-                  router.push("/settings/members");
+                  router.push("/settings");
                 }}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[#8a8f98] hover:bg-white/[0.04] hover:text-white transition cursor-pointer"
               >
@@ -412,13 +418,14 @@ export function Sidebar() {
                 <span>Issues</span>
               </div>
 
-              {/* Active (Selected state in screenshot!) */}
+              {/* Active */}
               <Link
                 href="/issues/active"
-                className={`flex items-center gap-2 pl-6 pr-2 py-1 rounded-md text-xs font-medium transition ${pathname === "/issues/active" || pathname === "/projects"
+                className={`flex items-center gap-2 pl-6 pr-2 py-1 rounded-md text-xs font-medium transition ${
+                  pathname === "/issues/active" || pathname === "/projects"
                     ? "bg-[#1c1e2b] text-white"
                     : "text-[#8a8f98] hover:text-white hover:bg-white/[0.03]"
-                  }`}
+                }`}
               >
                 <span>Active</span>
               </Link>
@@ -426,10 +433,11 @@ export function Sidebar() {
               {/* Backlog */}
               <Link
                 href="/issues/backlog"
-                className={`flex items-center gap-2 pl-6 pr-2 py-1 rounded-md text-xs font-normal transition ${pathname === "/issues/backlog"
+                className={`flex items-center gap-2 pl-6 pr-2 py-1 rounded-md text-xs font-normal transition ${
+                  pathname === "/issues/backlog"
                     ? "bg-[#1c1e2b] text-white"
                     : "text-[#8a8f98] hover:text-white hover:bg-white/[0.03]"
-                  }`}
+                }`}
               >
                 <span>Backlog</span>
               </Link>

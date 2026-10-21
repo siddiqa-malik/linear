@@ -26,7 +26,7 @@ export default function SettingsMembersPage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-4xl mx-auto py-10 px-6 sm:px-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[20px] font-semibold text-white tracking-wide mb-1">

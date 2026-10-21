@@ -9,7 +9,7 @@ export default function SettingsPreferencesPage() {
   const { compactView, setCompactView, theme, setTheme } = useUI();
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="max-w-2xl mx-auto py-10 px-6 sm:px-8 space-y-8">
       <div>
         <h1 className="text-[20px] font-semibold text-white tracking-wide mb-1">
           Preferences
@@ -19,12 +19,12 @@ export default function SettingsPreferencesPage() {
         </p>
       </div>
 
-      <div className="p-6 rounded-xl bg-[#0d0e12] border border-white/[0.06] space-y-6">
+      <div className="p-6 rounded-xl bg-[#161726] border border-[#25283e] space-y-6">
         <div>
           <label className="block text-[13px] font-medium text-white mb-1.5">
             Interface Theme
           </label>
-          <p className="text-[12px] text-[#8a8f98] mb-3">
+          <p className="text-[12px] text-[#8b90a4] mb-3">
             Choose your preferred Linear color scheme.
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -39,10 +39,10 @@ export default function SettingsPreferencesPage() {
                 <button
                   key={t.id}
                   onClick={() => setTheme(t.id as any)}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all ${
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-center transition-all cursor-pointer ${
                     isSelected
                       ? "bg-[#5e6ad2]/20 border-[#5e6ad2] text-white"
-                      : "bg-[#12141a] border-white/[0.06] text-[#8a8f98] hover:text-white"
+                      : "bg-[#0f101a] border-[#25283e] text-[#8b90a4] hover:text-white"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
