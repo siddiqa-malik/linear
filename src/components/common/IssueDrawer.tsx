@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { Drawer } from "../ui/Drawer";
@@ -23,10 +23,22 @@ export function IssueDrawer({
 }) {
   const { setActiveIssueId } = useUI();
   const [task, setTask] = useState<Task | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingComment, setIsSendingComment] = useState(false);
+
+  // Fetch available projects for optional project assignment
+  useEffect(() => {
+    api
+      .get("/projects")
+      .then((res) => {
+        const list = res?.data || res || [];
+        if (Array.isArray(list)) setProjects(list);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!taskId) {
@@ -55,14 +67,45 @@ export function IssueDrawer({
   const handleStatusChange = async (newStatus: TaskStatus) => {
     if (!task) return;
     setTask({ ...task, status: newStatus });
-    await api.put(`/tasks/${task._id}`, { status: newStatus });
+    try {
+      await api.patch(`/issues/${task._id}`, { status: newStatus });
+    } catch {
+      await api.patch(`/tasks/${task._id}`, { status: newStatus }).catch(() => {});
+    }
     onTaskUpdated?.();
   };
 
   const handlePriorityChange = async (newPriority: TaskPriority) => {
     if (!task) return;
     setTask({ ...task, priority: newPriority });
-    await api.put(`/tasks/${task._id}`, { priority: newPriority });
+    try {
+      await api.patch(`/issues/${task._id}`, { priority: newPriority });
+    } catch {
+      await api.patch(`/tasks/${task._id}`, { priority: newPriority }).catch(() => {});
+    }
+    onTaskUpdated?.();
+  };
+
+  /*
+   * Handle Project Assignment or Removal (Standalone)
+   * In Linear, issues can be standalone or assigned to a project at any time.
+   */
+  const handleProjectChange = async (newProjectId: string | null) => {
+    if (!task) return;
+    const chosenProj = newProjectId ? projects.find((p) => p._id === newProjectId) : null;
+    setTask({
+      ...task,
+      projectId: chosenProj ? { _id: chosenProj._id, name: chosenProj.name } : undefined,
+    });
+    try {
+      await api.patch(`/issues/${task._id}`, { projectId: newProjectId });
+    } catch {
+      await api.patch(`/tasks/${task._id}`, { projectId: newProjectId }).catch(() => {});
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("taskflow:task-created"));
+      window.dispatchEvent(new Event("task-created"));
+    }
     onTaskUpdated?.();
   };
 
@@ -201,6 +244,43 @@ export function IssueDrawer({
 
             {/* Right 25%: Property Attributes Rail */}
             <div className="col-span-4 p-5 space-y-5 text-xs bg-[#0b0c10]">
+              {/* Team (Required in Linear: Every issue must belong to a team) */}
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-1.5">
+                  Team
+                </label>
+                <div className="flex items-center gap-2 rounded border border-white/10 bg-[#121319] px-2.5 py-1.5 text-xs text-white">
+                  <span className="font-medium text-[#c5c8d6]">
+                    {typeof (task as any).teamId === "object" && (task as any).teamId?.name
+                      ? (task as any).teamId.name
+                      : (task as any).teamName || "Team"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Project (Optional in Linear: Issues can be standalone or assigned later) */}
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-1.5">
+                  Project
+                </label>
+                <select
+                  value={
+                    task.projectId && typeof task.projectId === "object"
+                      ? (task.projectId as any)._id
+                      : task.projectId || ""
+                  }
+                  onChange={(e) => handleProjectChange(e.target.value ? e.target.value : null)}
+                  className="w-full rounded border border-white/10 bg-[#121319] px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer"
+                >
+                  <option value="">No project (Standalone)</option>
+                  {projects.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Status */}
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-1.5">

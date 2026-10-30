@@ -1,4 +1,4 @@
-﻿export type TaskStatus = "todo" | "in-progress" | "completed";
+export type TaskStatus = "todo" | "in-progress" | "completed";
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface UserSummary {
@@ -11,7 +11,11 @@ export interface UserSummary {
 
 export interface Task {
   _id: string;
-  projectId: string;
+  projectId?: any;
+  teamId?: any;
+  workspaceId?: any;
+  identifier?: string;
+  number?: number;
   title: string;
   description?: string;
   createdBy: string | UserSummary;

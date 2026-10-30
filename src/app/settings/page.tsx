@@ -141,6 +141,21 @@ function SettingsContent() {
     }
   }, [currentWorkspace]);
 
+  useEffect(() => {
+    if (currentTab === "members") {
+      router.push("/settings/members");
+    }
+    if (currentTab === "teams") {
+      router.push("/settings/teams");
+    }
+    const teamIdParam = searchParams.get("teamId");
+    if (currentTab === "team" && teamIdParam) {
+      router.push(`/settings/teams/${teamIdParam}`);
+    } else if (currentTab === "team") {
+      router.push("/settings/teams");
+    }
+  }, [currentTab, searchParams, router]);
+
   // Team settings states
   const [estimationType, setEstimationType] = useState<"tshirt" | "fibonacci">("fibonacci");
 

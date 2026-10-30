@@ -19,7 +19,7 @@ function InvitationAcceptContent() {
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState(teamParam || "Design agency");
+  const [workspaceName, setWorkspaceName] = useState(teamParam || "Workspace");
   const [invitationEmail, setInvitationEmail] = useState<string | null>(null);
 
   // Fetch token details if token is provided

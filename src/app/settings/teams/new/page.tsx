@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import Link from "next/link";
 import {
   FolderKanban,
   Sparkles,
@@ -12,9 +15,10 @@ import {
   Rocket,
   Shield,
   ArrowUpCircle,
-  Check,
   ChevronDown,
+  ChevronLeft,
   X,
+  AlertCircle,
 } from "lucide-react";
 
 const AVAILABLE_ICONS = [
@@ -41,6 +45,7 @@ const AVAILABLE_COLORS = [
 
 export default function CreateTeamPage() {
   const router = useRouter();
+  const { currentWorkspace } = useWorkspace();
 
   // Form State
   const [teamName, setTeamName] = useState("");
@@ -52,13 +57,31 @@ export default function CreateTeamPage() {
 
   // Toggles
   const [copySettings, setCopySettings] = useState(false);
-  const [selectedExistingTeam, setSelectedExistingTeam] = useState("Design agency");
+  const [existingTeams, setExistingTeams] = useState<Array<{ _id: string; name: string }>>([]);
+  const [selectedExistingTeam, setSelectedExistingTeam] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Status
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Load existing teams dynamically for copy settings dropdown
+  React.useEffect(() => {
+    if (!currentWorkspace?._id) return;
+    api
+      .get(`/teams?workspaceId=${currentWorkspace._id}`)
+      .then((res) => {
+        const list = res?.data || res || [];
+        if (Array.isArray(list)) {
+          setExistingTeams(list);
+          if (list.length > 0) {
+            setSelectedExistingTeam(list[0].name);
+          }
+        }
+      })
+      .catch(() => null);
+  }, [currentWorkspace?._id]);
 
   // Auto generate identifier from name unless user manually modified it
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,38 +109,47 @@ export default function CreateTeamPage() {
     setTeamIdentifier(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6));
   };
 
-  const handleCreateTeam = (e: React.FormEvent) => {
+  const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName.trim()) return;
 
     setIsSubmitting(true);
+    setErrorMessage(null);
 
-    const newTeam = {
-      _id: `team_${Date.now()}`,
+    const payload = {
       name: teamName.trim(),
       key: teamIdentifier.trim() || teamName.slice(0, 3).toUpperCase(),
+      workspaceId: currentWorkspace?._id,
       color: selectedColor,
-      iconName: AVAILABLE_ICONS[selectedIconIndex].name,
+      icon: AVAILABLE_ICONS[selectedIconIndex].name,
       isPrivate,
-      copiedFrom: copySettings ? selectedExistingTeam : null,
-      createdAt: new Date().toISOString(),
+      copiedFrom: copySettings ? selectedExistingTeam : undefined,
     };
 
     try {
-      const stored = localStorage.getItem("taskflow_custom_teams");
-      const existing = stored ? JSON.parse(stored) : [];
-      const updated = [...existing, newTeam];
-      localStorage.setItem("taskflow_custom_teams", JSON.stringify(updated));
+      if (!currentWorkspace?._id) {
+        setErrorMessage("Please select an active workspace first.");
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Dispatch event so SettingsSidebar immediately reflects the new team
+      // 1. Save directly to MongoDB via backend
+      await api.post("/teams", payload);
+
+      // 2. Clean up any leftover local storage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("taskflow_custom_teams");
+      }
+
+      // 3. Notify SettingsSidebar to re-fetch from database
       window.dispatchEvent(new Event("taskflow_team_created"));
-      window.dispatchEvent(new Event("storage"));
 
-      setSuccessMessage(`Team "${newTeam.name}" created successfully!`);
-      setTimeout(() => {
-        router.push(`/settings?tab=team&teamId=${newTeam._id}`);
-      }, 700);
-    } catch {
+      // 4. Refresh page cleanly as requested (no success message)
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to create team in database");
       setIsSubmitting(false);
     }
   };
@@ -125,8 +157,19 @@ export default function CreateTeamPage() {
   const SelectedIconComponent = AVAILABLE_ICONS[selectedIconIndex].icon;
 
   return (
-    <div className="min-h-full bg-[#10111a] text-[#e2e4ef] py-12 px-6 sm:px-10 flex flex-col justify-start">
-      <div className="w-full max-w-[660px] mx-auto">
+    <div className="min-h-full bg-[#10111a] text-[#e2e4ef] select-none flex flex-col justify-start">
+      {/* Top Left Navigation: < Teams */}
+      <div className="pt-5 px-6 sm:px-8">
+        <Link
+          href="/settings/teams"
+          className="inline-flex items-center gap-1 text-[12.5px] text-[#8b90a4] hover:text-white transition-colors cursor-pointer group"
+        >
+          <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+          <span>Teams</span>
+        </Link>
+      </div>
+
+      <div className="w-full max-w-[660px] mx-auto px-6 pt-3 pb-12">
         {/* Page Title & Subtitle matching screenshot */}
         <div className="mb-8">
           <h1 className="text-[23px] sm:text-[25px] font-semibold text-white tracking-tight">
@@ -137,11 +180,11 @@ export default function CreateTeamPage() {
           </p>
         </div>
 
-        {/* Feedback Alert if success */}
-        {successMessage && (
-          <div className="mb-6 p-3 rounded-md bg-[#10b981]/10 border border-[#10b981]/30 text-[#34d399] text-xs flex items-center gap-2">
-            <Check className="w-4 h-4 shrink-0" />
-            <span>{successMessage}</span>
+        {/* Error Alert */}
+        {errorMessage && (
+          <div className="mb-6 p-3 rounded-md bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#f87171] text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
           </div>
         )}
 
@@ -281,18 +324,29 @@ export default function CreateTeamPage() {
                 {/* Sub-selector if copySettings is toggled ON */}
                 {copySettings && (
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-[#8b90a4]">Copy from:</span>
-                    <div className="relative">
-                      <select
-                        value={selectedExistingTeam}
-                        onChange={(e) => setSelectedExistingTeam(e.target.value)}
-                        className="h-8 pl-2.5 pr-7 bg-[#161827] border border-[#2a2d45] rounded text-xs text-white outline-none focus:border-[#5e6ad2] cursor-pointer appearance-none"
-                      >
-                        <option value="Design agency">Design agency</option>
-                        <option value="Core">Core</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6b7086] absolute right-2 top-2.5 pointer-events-none" />
-                    </div>
+                    {existingTeams.length > 0 ? (
+                      <>
+                        <span className="text-xs text-[#8b90a4]">Copy from:</span>
+                        <div className="relative">
+                          <select
+                            value={selectedExistingTeam}
+                            onChange={(e) => setSelectedExistingTeam(e.target.value)}
+                            className="h-8 pl-2.5 pr-7 bg-[#161827] border border-[#2a2d45] rounded text-xs text-white outline-none focus:border-[#5e6ad2] cursor-pointer appearance-none"
+                          >
+                            {existingTeams.map((t) => (
+                              <option key={t._id} value={t.name}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#6b7086] absolute right-2 top-2.5 pointer-events-none" />
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[#8b90a4] italic">
+                        No existing teams in this workspace to copy from.
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

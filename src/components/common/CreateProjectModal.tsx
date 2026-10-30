@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -30,12 +30,104 @@ interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated?: () => void;
+  defaultTeamId?: string;
 }
 
 interface TeamMemberItem {
   name: string;
   email: string;
   initials: string;
+}
+
+interface TeamItem {
+  _id: string;
+  name: string;
+  key?: string;
+  color?: string;
+  icon?: string;
+}
+
+function TeamAvatar({
+  team,
+  className = "w-4 h-4",
+}: {
+  team?: TeamItem | null;
+  className?: string;
+}) {
+  if (!team) {
+    return (
+      <div
+        className={`${className} rounded-full bg-[#10b981] flex items-center justify-center shrink-0 text-white shadow-sm`}
+      >
+        <span className="text-[9px] font-bold">T</span>
+      </div>
+    );
+  }
+
+  const color = team.color || "#10b981";
+  const name = (team.name || "").toLowerCase();
+
+  // If team is designer or design or Palette
+  if (team.icon === "Palette" || name.includes("design")) {
+    return (
+      <div
+        className={`${className} rounded-full flex items-center justify-center shrink-0 text-white shadow-sm`}
+        style={{ backgroundColor: color }}
+        title={team.name}
+      >
+        <svg viewBox="0 0 16 16" fill="currentColor" className="w-2.5 h-2.5">
+          <circle cx="5" cy="5" r="1.5" />
+          <circle cx="11" cy="5" r="1.5" />
+          <circle cx="8" cy="11" r="1.5" />
+        </svg>
+      </div>
+    );
+  }
+
+  // If team is web developer or dev (renders green smile face from screenshot)
+  if (team.icon === "Smile" || name.includes("web") || name.includes("dev")) {
+    return (
+      <div
+        className={`${className} rounded-full flex items-center justify-center shrink-0 text-white shadow-sm`}
+        style={{ backgroundColor: color }}
+        title={team.name}
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-2.5 h-2.5">
+          <circle cx="8" cy="8" r="6" />
+          <path d="M5.5 9.5C6.2 10.5 7.1 11 8 11C8.9 11 9.8 10.5 10.5 9.5" strokeLinecap="round" />
+          <circle cx="6" cy="6.5" r="0.75" fill="currentColor" />
+          <circle cx="10" cy="6.5" r="0.75" fill="currentColor" />
+        </svg>
+      </div>
+    );
+  }
+
+  // If team is code / terminal
+  if (team.icon === "Terminal" || name.includes("tech") || name.includes("code")) {
+    return (
+      <div
+        className={`${className} rounded-full flex items-center justify-center shrink-0 text-white shadow-sm`}
+        style={{ backgroundColor: color }}
+        title={team.name}
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-2.5 h-2.5">
+          <path d="M4 6L6.5 8L4 10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M8 10H12" strokeLinecap="round" />
+        </svg>
+      </div>
+    );
+  }
+
+  // Default clean badge with first letter of team name
+  return (
+    <div
+      className={`${className} rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm`}
+      style={{ backgroundColor: color }}
+      title={team.name}
+    >
+      {team.name ? team.name.charAt(0).toUpperCase() : "T"}
+    </div>
+  );
 }
 
 const STATUS_CONFIG: Record<
@@ -100,6 +192,7 @@ export function CreateProjectModal({
   isOpen,
   onClose,
   onCreated,
+  defaultTeamId,
 }: CreateProjectModalProps) {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -117,14 +210,218 @@ export function CreateProjectModal({
     "status" | "priority" | "lead" | "members" | "startDate" | "targetDate" | null
   >(null);
 
+  // Teams state for team selection menu matching screenshot
+  const [teams, setTeams] = useState<TeamItem[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<TeamItem | null>(null);
+  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+  const [teamSearchQuery, setTeamSearchQuery] = useState("");
+  const teamDropdownRef = useRef<HTMLDivElement>(null);
+
   const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [candidateMembers, setCandidateMembers] = useState<TeamMemberItem[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteFeedback, setInviteFeedback] = useState<string | null>(null);
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  const [hasCopiedLink, setHasCopiedLink] = useState(false);
+
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const propertiesRowRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // Close dropdown on outside click
+  // Helper for initials
+  const getInitials = (str: string) => {
+    if (!str) return "U";
+    const parts = str.replace(/[^a-zA-Z0-9]/g, " ").trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return str.slice(0, 2).toUpperCase();
+  };
+
+  // Dynamically load real workspace members from database
+  const loadWorkspaceMembers = useCallback(async () => {
+    setIsLoadingMembers(true);
+    setInviteFeedback(null);
+    try {
+      const list: TeamMemberItem[] = [];
+      const seenEmails = new Set<string>();
+
+      // 1. Current logged-in user is always an available option
+      const currentEmail =
+        user?.email ||
+        (typeof window !== "undefined"
+          ? sessionStorage.getItem("recent_auth_email") || ""
+          : "");
+      const currentName = user?.name || (currentEmail ? currentEmail.split("@")[0] : "You");
+
+      if (currentEmail) {
+        list.push({
+          name: currentName,
+          email: currentEmail,
+          initials: getInitials(currentName),
+        });
+        seenEmails.add(currentEmail.toLowerCase().trim());
+      }
+
+      // 2. Fetch current workspace data to get real accepted members
+      if (currentWorkspace?._id) {
+        try {
+          const wsRes = await api.get(`/workspaces/${currentWorkspace._id}`);
+          const ws = wsRes?.data || wsRes;
+
+          // Workspace Owner (if different from current user)
+          if (ws?.ownerId && typeof ws.ownerId === "object") {
+            const ownerEmail = ws.ownerId.email || "";
+            if (ownerEmail && !seenEmails.has(ownerEmail.toLowerCase().trim())) {
+              const ownerName = ws.ownerId.name || ownerEmail.split("@")[0];
+              list.push({
+                name: ownerName,
+                email: ownerEmail,
+                initials: getInitials(ownerName),
+              });
+              seenEmails.add(ownerEmail.toLowerCase().trim());
+            }
+          }
+
+          // Members who accepted the invite and joined the workspace
+          if (Array.isArray(ws?.members)) {
+            ws.members.forEach((m: any) => {
+              const memberUser = typeof m.userId === "object" ? m.userId : null;
+              if (memberUser && memberUser.email) {
+                const em = memberUser.email.toLowerCase().trim();
+                if (!seenEmails.has(em)) {
+                  const mName = memberUser.name || memberUser.email.split("@")[0];
+                  list.push({
+                    name: mName,
+                    email: memberUser.email,
+                    initials: getInitials(mName),
+                  });
+                  seenEmails.add(em);
+                }
+              }
+            });
+          }
+
+          // Accepted invitations in this workspace
+          if (Array.isArray(ws?.invitations)) {
+            ws.invitations.forEach((inv: any) => {
+              if (inv?.status === "accepted" && inv.email) {
+                const em = inv.email.toLowerCase().trim();
+                if (!seenEmails.has(em)) {
+                  const invName = inv.email.split("@")[0];
+                  list.push({
+                    name: invName,
+                    email: inv.email,
+                    initials: getInitials(invName),
+                  });
+                  seenEmails.add(em);
+                }
+              }
+            });
+          }
+        } catch (wsErr) {
+          console.warn("Could not fetch detailed workspace members:", wsErr);
+        }
+
+        // 3. Also check any teams in this workspace for accepted team members
+        try {
+          const teamsRes = await api.get(`/teams?workspaceId=${currentWorkspace._id}`);
+          const teams = teamsRes?.data || teamsRes || [];
+          if (Array.isArray(teams)) {
+            for (const t of teams) {
+              if (Array.isArray(t.members)) {
+                for (const tm of t.members) {
+                  const tu = typeof tm.userId === "object" ? tm.userId : null;
+                  if (tu && tu.email) {
+                    const em = tu.email.toLowerCase().trim();
+                    if (!seenEmails.has(em)) {
+                      const tName = tu.name || tu.email.split("@")[0];
+                      list.push({
+                        name: tName,
+                        email: tu.email,
+                        initials: getInitials(tName),
+                      });
+                      seenEmails.add(em);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          // Non-fatal
+        }
+      }
+
+      setCandidateMembers(list);
+    } catch (err) {
+      console.warn("Failed to load workspace members:", err);
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [currentWorkspace?._id, user]);
+
+  // Load members whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadWorkspaceMembers();
+    }
+  }, [isOpen, loadWorkspaceMembers]);
+
+  // Dynamically fetch teams and default to the first team
+  const fetchTeams = useCallback(async () => {
+    if (!currentWorkspace?._id) return;
+    try {
+      const res = await api.get(`/teams?workspaceId=${currentWorkspace._id}`);
+      const list = res?.data || res || [];
+      if (Array.isArray(list) && list.length > 0) {
+        setTeams(list);
+        setSelectedTeam((prev) => {
+          if (defaultTeamId) {
+            const found = list.find((t: any) => t._id === defaultTeamId);
+            if (found) return found;
+          }
+          if (prev && list.some((t: any) => t._id === prev._id)) {
+            return prev;
+          }
+          // By default, select the very first team
+          return list[0];
+        });
+      } else {
+        // Fallback default team if none created yet
+        const defaultT: TeamItem = {
+          _id: defaultTeamId || "default-team",
+          name: "designer",
+          key: "DES",
+          color: "#10b981",
+          icon: "Palette",
+        };
+        setTeams([defaultT]);
+        setSelectedTeam((prev) => prev || defaultT);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch teams:", err);
+    }
+  }, [currentWorkspace?._id, defaultTeamId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchTeams();
+    }
+  }, [isOpen, fetchTeams]);
+
+  // When defaultTeamId changes and teams are available, set selected team
+  useEffect(() => {
+    if (isOpen && defaultTeamId && teams.length > 0) {
+      const match = teams.find((t) => t._id === defaultTeamId);
+      if (match) setSelectedTeam(match);
+    }
+  }, [isOpen, defaultTeamId, teams]);
+
+  // Close property dropdown on outside click
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (
@@ -140,6 +437,54 @@ export function CreateProjectModal({
     }
   }, [activeDropdown]);
 
+  // Close team dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        teamDropdownRef.current &&
+        !teamDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsTeamDropdownOpen(false);
+      }
+    };
+    if (isTeamDropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }
+  }, [isTeamDropdownOpen]);
+
+  // Keyboard shortcut listener for "P then T" to open team picker
+  useEffect(() => {
+    let pPressed = false;
+    let timer: NodeJS.Timeout;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      const target = e.target as HTMLElement;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") {
+        return;
+      }
+
+      if (e.key === "p" || e.key === "P") {
+        pPressed = true;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          pPressed = false;
+        }, 1200);
+      } else if ((e.key === "t" || e.key === "T") && pPressed) {
+        e.preventDefault();
+        pPressed = false;
+        setIsTeamDropdownOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
+    };
+  }, [isOpen]);
+
   // Reset form when opened or closed
   useEffect(() => {
     if (isOpen) {
@@ -154,7 +499,11 @@ export function CreateProjectModal({
       setStartDate("");
       setTargetDate("");
       setActiveDropdown(null);
+      setIsTeamDropdownOpen(false);
+      setTeamSearchQuery("");
       setError(null);
+      setInviteFeedback(null);
+      setNewMemberEmail("");
     }
   }, [isOpen]);
 
@@ -177,27 +526,11 @@ export function CreateProjectModal({
     ? userEmail.split("@")[0]
     : user?.name || "Member";
 
-  const getInitials = (str: string) => {
-    if (!str) return "DI";
-    const parts = str.replace(/[^a-zA-Z0-9]/g, " ").trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return str.slice(0, 2).toUpperCase();
-  };
-
   const currentUserItem: TeamMemberItem = {
     name: userNameHandle,
     email: userEmail,
     initials: getInitials(userNameHandle),
   };
-
-  // Team pool
-  const candidateMembers: TeamMemberItem[] = [
-    currentUserItem,
-    { name: "Noman Tariq", email: "noman@linear.app", initials: "NT" },
-    { name: "Design Lead", email: "lead@linear.app", initials: "DL" },
-  ];
 
   const formatDisplayDate = (d: string) => {
     if (!d) return "";
@@ -225,6 +558,8 @@ export function CreateProjectModal({
         projectStatus: status,
         priority: priority,
         lead: assignedLead,
+        teamId: selectedTeam?._id,
+        teamName: selectedTeam?.name,
         startDate: startDate || undefined,
         dueDate: targetDate || undefined,
       });
@@ -236,6 +571,9 @@ export function CreateProjectModal({
           localStorage.setItem(
             `taskflow_proj_meta_${projId}`,
             JSON.stringify({
+              teamId: selectedTeam?._id,
+              teamName: selectedTeam?.name,
+              teamKey: (selectedTeam?.key || selectedTeam?.name?.replace(/[^a-zA-Z]/g, "").slice(0, 3) || "DES").toUpperCase(),
               projectStatus: status,
               priority: priority,
               lead: assignedLead,
@@ -283,29 +621,131 @@ export function CreateProjectModal({
         >
           {/* Header Bar */}
           <div className="flex items-center justify-between px-6 pt-3.5 pb-2 border-b border-[#24263a]/60 select-none">
-            {/* Team Badge & Breadcrumb */}
-            <div className="flex items-center gap-2">
-              <div className="h-6 px-2 rounded-[5px] bg-[#1f2133] border border-[#2e3149] flex items-center gap-1.5 text-[11px] font-semibold text-[#c5c8d6]">
-                <svg
-                  className="w-3.5 h-3.5 text-[#8a8f98]"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
-                  <rect x="2" y="4" width="9" height="9" rx="1.5" />
-                  <path d="M5 2h8a1.5 1.5 0 0 1 1.5 1.5v8" strokeLinecap="round" />
-                </svg>
-                <span>{teamPrefix}</span>
-              </div>
+            {/* Team Dropdown & Breadcrumb matching screenshot */}
+            <div className="flex items-center gap-2 relative" ref={teamDropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTeamDropdownOpen((prev) => !prev);
+                  setTeamSearchQuery("");
+                }}
+                className="h-7 px-2.5 rounded-[6px] bg-[#1f2133] hover:bg-[#25283c] border border-[#2e3149] flex items-center gap-1.5 text-[12.5px] font-semibold text-white transition-colors cursor-pointer select-none"
+              >
+                <TeamAvatar team={selectedTeam} />
+                <span>{selectedTeam?.name || "designer"}</span>
+              </button>
 
-              <span className="text-[#55596e] text-[13px] font-normal leading-none">
+              <span className="text-[#55596e] text-[13px] font-normal leading-none select-none">
                 ›
               </span>
 
-              <span className="text-[12.5px] text-[#8a8f98] font-normal">
+              <span className="text-[12.5px] text-[#8a8f98] font-normal select-none">
                 New project
               </span>
+
+              {/* Dropdown Menu matching user's screenshot */}
+              {isTeamDropdownOpen && (
+                <div className="absolute left-0 top-full mt-1.5 w-[280px] rounded-xl border border-[#2a2c3f] bg-[#161724] shadow-[0_16px_40px_rgba(0,0,0,0.7)] p-2 z-50 text-[#e6e7ee]">
+                  {/* Search Bar with "P then T" badge */}
+                  <div className="flex items-center justify-between px-2 py-1 mb-1.5">
+                    <input
+                      type="text"
+                      value={teamSearchQuery}
+                      onChange={(e) => setTeamSearchQuery(e.target.value)}
+                      placeholder="Change teams..."
+                      autoFocus
+                      className="bg-transparent text-[13px] text-white placeholder-[#707383] outline-none flex-1 pr-2"
+                    />
+                    <div className="shrink-0 flex items-center gap-1 text-[10px] text-[#8a8f98] bg-[#222436] px-1.5 py-0.5 rounded border border-[#2f3247]">
+                      <span className="font-mono">P</span>
+                      <span className="text-[9px] text-[#63677b]">then</span>
+                      <span className="font-mono">T</span>
+                    </div>
+                  </div>
+
+                  {/* Active Selected Team Card */}
+                  {selectedTeam &&
+                    (!teamSearchQuery ||
+                      selectedTeam.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) ||
+                      (selectedTeam.key && selectedTeam.key.toLowerCase().includes(teamSearchQuery.toLowerCase()))) && (
+                      <div className="bg-[#242638] rounded-lg px-2.5 py-2 flex items-center justify-between mb-1 select-none">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-4 h-4 rounded-[4px] bg-[#5e6ad2] flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 text-white stroke-[2.5]" />
+                          </div>
+                          <TeamAvatar team={selectedTeam} />
+                          <span className="text-[13px] font-semibold text-white truncate">
+                            {selectedTeam.name}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-[#65697e] font-mono tracking-wider ml-2 shrink-0">
+                          {(
+                            selectedTeam.key ||
+                            selectedTeam.name.replace(/[^a-zA-Z]/g, "").slice(0, 3)
+                          ).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+
+                  {/* Section: Your teams */}
+                  <div className="text-[11.5px] font-semibold text-[#65697e] px-2.5 pt-2 pb-1.5 select-none">
+                    Your teams
+                  </div>
+
+                  {/* Other Teams List */}
+                  <div className="max-h-48 overflow-y-auto space-y-0.5">
+                    {teams.filter((t) => {
+                      if (selectedTeam && t._id === selectedTeam._id) return false;
+                      if (!teamSearchQuery.trim()) return true;
+                      const q = teamSearchQuery.toLowerCase();
+                      const tKey = (t.key || t.name.replace(/[^a-zA-Z]/g, "").slice(0, 3)).toLowerCase();
+                      return t.name.toLowerCase().includes(q) || tKey.includes(q);
+                    }).length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-[#707383] italic">
+                        {teams.length <= 1 ? "No other teams" : "No matching teams"}
+                      </div>
+                    ) : (
+                      teams
+                        .filter((t) => {
+                          if (selectedTeam && t._id === selectedTeam._id) return false;
+                          if (!teamSearchQuery.trim()) return true;
+                          const q = teamSearchQuery.toLowerCase();
+                          const tKey = (t.key || t.name.replace(/[^a-zA-Z]/g, "").slice(0, 3)).toLowerCase();
+                          return t.name.toLowerCase().includes(q) || tKey.includes(q);
+                        })
+                        .map((team) => {
+                          const teamKey = (
+                            team.key || team.name.replace(/[^a-zA-Z]/g, "").slice(0, 3)
+                          ).toUpperCase();
+                          return (
+                            <button
+                              key={team._id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTeam(team);
+                                setIsTeamDropdownOpen(false);
+                                setTeamSearchQuery("");
+                              }}
+                              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-[#202232] cursor-pointer transition-colors text-left group"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {/* Spacer to align icon with the checkbox of selected team */}
+                                <div className="w-4 shrink-0" />
+                                <TeamAvatar team={team} />
+                                <span className="text-[13px] text-[#c5c8d6] group-hover:text-white transition-colors truncate">
+                                  {team.name}
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-medium text-[#65697e] font-mono tracking-wider ml-2 shrink-0">
+                                {teamKey}
+                              </span>
+                            </button>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Close Button */}
@@ -468,32 +908,50 @@ export function CreateProjectModal({
 
                 {/* Lead Selector Dropdown */}
                 {activeDropdown === "lead" && (
-                  <div className="absolute left-0 top-8 z-50 w-56 rounded-lg border border-[#2a2c3f] bg-[#161724] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute left-0 top-8 z-50 w-60 rounded-lg border border-[#2a2c3f] bg-[#161724] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100">
                     <p className="px-2 py-1 text-[10px] font-semibold text-[#8a8f98] uppercase tracking-wider">
                       Assign Project Lead
                     </p>
-                    {candidateMembers.map((m) => (
-                      <button
-                        key={m.email}
-                        type="button"
-                        onClick={() => {
-                          setLead(m);
-                          setActiveDropdown(null);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-white transition-colors cursor-pointer text-left"
-                      >
-                        <div className="w-5 h-5 rounded-full bg-[#7c3aed] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
-                          {m.initials}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs truncate font-medium">{m.name}</p>
-                          <p className="text-[10px] text-[#707383] truncate">{m.email}</p>
-                        </div>
-                        {lead?.email === m.email && (
-                          <Check className="w-3.5 h-3.5 text-[#5e6ad2] shrink-0" />
-                        )}
-                      </button>
-                    ))}
+
+                    {isLoadingMembers ? (
+                      <div className="flex items-center gap-2 px-2 py-3 text-xs text-[#8a8f98]">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#5e6ad2]" />
+                        <span>Loading members...</span>
+                      </div>
+                    ) : candidateMembers.length === 0 ? (
+                      <p className="px-2 py-2 text-xs text-[#8a8f98]">No members found</p>
+                    ) : (
+                      <div className="max-h-44 overflow-y-auto space-y-0.5">
+                        {candidateMembers.map((m) => (
+                          <button
+                            key={m.email}
+                            type="button"
+                            onClick={() => {
+                              setLead(m);
+                              setActiveDropdown(null);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-white transition-colors cursor-pointer text-left"
+                          >
+                            <div className="w-5 h-5 rounded-full bg-[#7c3aed] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+                              {m.initials}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs truncate font-medium">{m.name}</p>
+                              <p className="text-[10px] text-[#707383] truncate">{m.email}</p>
+                            </div>
+                            {lead?.email === m.email && (
+                              <Check className="w-3.5 h-3.5 text-[#5e6ad2] shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {candidateMembers.length <= 1 && !isLoadingMembers && (
+                      <div className="px-2 py-1.5 mt-1 border-t border-[#24263a]/60 text-[10.5px] text-[#626674] leading-tight">
+                        Invited teammates will appear here once they accept the invitation.
+                      </div>
+                    )}
 
                     <div className="border-t border-[#24263a]/60 my-1" />
 
@@ -537,80 +995,200 @@ export function CreateProjectModal({
 
                 {/* Members Dropdown Menu with Add From Team */}
                 {activeDropdown === "members" && (
-                  <div className="absolute left-0 top-8 z-50 w-64 rounded-lg border border-[#2a2c3f] bg-[#161724] p-2 shadow-[0_16px_48px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute left-0 top-8 z-50 w-72 rounded-lg border border-[#2a2c3f] bg-[#161724] p-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100">
                     <p className="px-1 py-1 text-[10px] font-semibold text-[#8a8f98] uppercase tracking-wider">
-                      Add from team
+                      Workspace Members
                     </p>
 
                     {/* Team Members List */}
-                    <div className="max-h-36 overflow-y-auto space-y-1 mb-2">
-                      {candidateMembers.map((c) => {
-                        const isSelected = selectedMembers.some(
-                          (m) => m.email === c.email
-                        );
-                        return (
-                          <button
-                            key={c.email}
-                            type="button"
-                            onClick={() => {
-                              if (isSelected) {
-                                setSelectedMembers(
-                                  selectedMembers.filter((m) => m.email !== c.email)
-                                );
-                              } else {
-                                setSelectedMembers([...selectedMembers, c]);
-                              }
-                            }}
-                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors cursor-pointer ${
-                              isSelected
-                                ? "bg-[#282b3e] text-white"
-                                : "hover:bg-white/[0.05] text-[#c5c8d6]"
-                            }`}
-                          >
-                            <div className="w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
-                              {c.initials}
-                            </div>
-                            <div className="flex-1 truncate text-xs">{c.name}</div>
-                            {isSelected && (
-                              <Check className="w-3.5 h-3.5 text-[#5e6ad2]" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {isLoadingMembers ? (
+                      <div className="flex items-center gap-2 px-1 py-3 text-xs text-[#8a8f98]">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#5e6ad2]" />
+                        <span>Loading accepted members...</span>
+                      </div>
+                    ) : (
+                      <div className="max-h-40 overflow-y-auto space-y-1 mb-2 pr-0.5">
+                        {candidateMembers.map((c) => {
+                          const isSelected = selectedMembers.some(
+                            (m) => m.email.toLowerCase() === c.email.toLowerCase()
+                          );
+                          return (
+                            <button
+                              key={c.email}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedMembers(
+                                    selectedMembers.filter(
+                                      (m) => m.email.toLowerCase() !== c.email.toLowerCase()
+                                    )
+                                  );
+                                } else {
+                                  setSelectedMembers([...selectedMembers, c]);
+                                }
+                              }}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors cursor-pointer ${
+                                isSelected
+                                  ? "bg-[#282b3e] text-white"
+                                  : "hover:bg-white/[0.05] text-[#c5c8d6]"
+                              }`}
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+                                {c.initials}
+                              </div>
+                              <div className="flex-1 truncate">
+                                <p className="text-xs font-medium truncate">{c.name}</p>
+                                <p className="text-[10px] text-[#707383] truncate">{c.email}</p>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-3.5 h-3.5 text-[#5e6ad2] shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {candidateMembers.length <= 1 && !isLoadingMembers && (
+                      <div className="px-1 py-1 text-[11px] text-[#707383] mb-2 leading-tight">
+                        Teammates who accept your workspace invitation will automatically appear in this list.
+                      </div>
+                    )}
 
                     {/* Invite by Email */}
                     <div className="pt-2 border-t border-[#24263a]/60">
                       <p className="text-[10px] text-[#8a8f98] mb-1 px-1">
-                        Add colleague by email:
+                        Invite teammate by email:
                       </p>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="email"
-                          placeholder="name@company.com"
+                          placeholder="colleague@company.com"
                           value={newMemberEmail}
                           onChange={(e) => setNewMemberEmail(e.target.value)}
+                          onKeyDown={async (e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (!newMemberEmail.trim()) return;
+                              const emailToInvite = newMemberEmail.trim().toLowerCase();
+                              setIsSendingInvite(true);
+                              setInviteFeedback(null);
+                              try {
+                                let link = "";
+                                if (currentWorkspace?._id) {
+                                  const res: any = await api.post("/workspaces/invite", {
+                                    emails: [emailToInvite],
+                                    workspaceId: currentWorkspace._id,
+                                    teamName: currentWorkspace.name,
+                                  });
+                                  link = res?.data?.inviteLink || res?.inviteLink || res?.data?.details?.[0]?.inviteLink || "";
+                                }
+
+                                const name = emailToInvite.split("@")[0];
+                                const initials = getInitials(name);
+                                const newItem: TeamMemberItem = { name, email: emailToInvite, initials };
+
+                                if (!selectedMembers.some((m) => m.email.toLowerCase() === emailToInvite)) {
+                                  setSelectedMembers([...selectedMembers, newItem]);
+                                }
+                                if (!candidateMembers.some((m) => m.email.toLowerCase() === emailToInvite)) {
+                                  setCandidateMembers([...candidateMembers, newItem]);
+                                }
+
+                                setNewMemberEmail("");
+                                if (link) {
+                                  setLastInviteLink(link);
+                                }
+                                setInviteFeedback(`Invitation sent to ${emailToInvite}!`);
+                              } catch (err: any) {
+                                setInviteFeedback(err?.message || "Failed to send invitation");
+                              } finally {
+                                setIsSendingInvite(false);
+                              }
+                            }
+                          }}
                           className="flex-1 h-7 px-2 rounded bg-[#10111a] border border-[#2a2c3f] text-xs text-white outline-none focus:border-[#5e6ad2]"
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            if (newMemberEmail.trim()) {
-                              const email = newMemberEmail.trim();
-                              const name = email.split("@")[0];
-                              const initials = name.slice(0, 2).toUpperCase();
-                              setSelectedMembers([
-                                ...selectedMembers,
-                                { name, email, initials },
-                              ]);
+                          disabled={isSendingInvite || !newMemberEmail.trim()}
+                          onClick={async () => {
+                            if (!newMemberEmail.trim()) return;
+                            const emailToInvite = newMemberEmail.trim().toLowerCase();
+                            setIsSendingInvite(true);
+                            setInviteFeedback(null);
+                            try {
+                              let link = "";
+                              if (currentWorkspace?._id) {
+                                const res: any = await api.post("/workspaces/invite", {
+                                  emails: [emailToInvite],
+                                  workspaceId: currentWorkspace._id,
+                                  teamName: currentWorkspace.name,
+                                });
+                                link = res?.data?.inviteLink || res?.inviteLink || res?.data?.details?.[0]?.inviteLink || "";
+                              }
+
+                              const name = emailToInvite.split("@")[0];
+                              const initials = getInitials(name);
+                              const newItem: TeamMemberItem = { name, email: emailToInvite, initials };
+
+                              if (!selectedMembers.some((m) => m.email.toLowerCase() === emailToInvite)) {
+                                setSelectedMembers([...selectedMembers, newItem]);
+                              }
+                              if (!candidateMembers.some((m) => m.email.toLowerCase() === emailToInvite)) {
+                                setCandidateMembers([...candidateMembers, newItem]);
+                              }
+
                               setNewMemberEmail("");
+                              if (link) {
+                                setLastInviteLink(link);
+                              }
+                              setInviteFeedback(`Invitation sent to ${emailToInvite}!`);
+                            } catch (err: any) {
+                              setInviteFeedback(err?.message || "Failed to send invitation");
+                            } finally {
+                              setIsSendingInvite(false);
                             }
                           }}
-                          className="h-7 px-2.5 rounded bg-[#5e6ad2] text-xs font-medium text-white hover:bg-[#6875e5] cursor-pointer"
+                          className="h-7 px-2.5 rounded bg-[#5e6ad2] text-xs font-medium text-white hover:bg-[#6875e5] cursor-pointer disabled:opacity-50 flex items-center gap-1"
                         >
-                          Add
+                          {isSendingInvite ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <span>Invite</span>
+                          )}
                         </button>
                       </div>
+
+                      {inviteFeedback && (
+                        <p className="text-[10.5px] text-[#10b981] mt-1 px-1 font-medium">
+                          {inviteFeedback}
+                        </p>
+                      )}
+
+                      {lastInviteLink && (
+                        <div className="mt-2 p-2 rounded-md bg-[#11121d] border border-[#2a2c42] text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-[#8a8f98] font-medium">
+                              Direct Invitation Link:
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(lastInviteLink);
+                                setHasCopiedLink(true);
+                                setTimeout(() => setHasCopiedLink(false), 2000);
+                              }}
+                              className="px-2 py-0.5 rounded bg-[#5e6ad2] hover:bg-[#6875e5] text-white text-[10px] font-medium cursor-pointer transition"
+                            >
+                              {hasCopiedLink ? "Copied!" : "Copy Link"}
+                            </button>
+                          </div>
+                          <p className="text-[9.5px] text-[#707388] truncate select-all font-mono">
+                            {lastInviteLink}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

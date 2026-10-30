@@ -14,6 +14,9 @@ export interface Project {
   lead?: { name?: string; email?: string; initials?: string } | string;
   startDate?: string;
   dueDate?: string;
+  teamId?: string | any;
+  teamName?: string;
+  teamKey?: string;
   createdAt: string;
   updatedAt: string;
   taskCount?: number;

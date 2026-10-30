@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar } from "@/components/workspace/Sidebar";
 import { RoadmapTimeline } from "@/components/roadmap/RoadmapTimeline";
+import { AuthGuard } from "@/components/common/AuthGuard";
 import { api } from "@/lib/api";
 import { Project } from "@/types/project";
 
@@ -28,18 +29,20 @@ export default function RoadmapsPage() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0e0f15]">
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden bg-[#0e0f15]">
-        <RoadmapTimeline
-          projects={projects}
-          filter={filter}
-          setFilter={setFilter}
-          title="All projects"
-          breadcrumb="Roadmaps"
-          showBreadcrumbPrefix={false}
-        />
-      </main>
-    </div>
+    <AuthGuard>
+      <div className="flex h-screen overflow-hidden bg-[#0e0f15]">
+        <Sidebar />
+        <main className="flex-1 flex flex-col overflow-hidden bg-[#0e0f15]">
+          <RoadmapTimeline
+            projects={projects}
+            filter={filter}
+            setFilter={setFilter}
+            title="All projects"
+            breadcrumb="Roadmaps"
+            showBreadcrumbPrefix={false}
+          />
+        </main>
+      </div>
+    </AuthGuard>
   );
 }

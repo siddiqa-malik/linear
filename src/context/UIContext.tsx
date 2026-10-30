@@ -12,6 +12,7 @@ interface UIContextType {
   createModalOpen: boolean;
   createProjectModalOpen: boolean;
   activeIssueId: string | null;
+  activeProjectId: string | null;
   setTheme: (theme: "dark" | "light" | "system") => void;
   setCompactView: (compact: boolean) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -19,6 +20,7 @@ interface UIContextType {
   setCreateModalOpen: (open: boolean) => void;
   setCreateProjectModalOpen: (open: boolean) => void;
   setActiveIssueId: (id: string | null) => void;
+  setActiveProjectId: (id: string | null) => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -31,6 +33,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [createModalOpen, setCreateModalOpen] = useState<boolean>(false);
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState<boolean>(false);
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   // Global Keyboard shortcuts (⌘K for command palette, N for new issue)
   useEffect(() => {
@@ -92,6 +95,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         createModalOpen,
         createProjectModalOpen,
         activeIssueId,
+        activeProjectId,
         setTheme,
         setCompactView,
         setSidebarCollapsed,
@@ -99,6 +103,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         setCreateModalOpen,
         setCreateProjectModalOpen,
         setActiveIssueId,
+        setActiveProjectId,
       }}
     >
       {children}

@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useUI } from "@/context/UIContext";
 import { api } from "@/lib/api";
+import { AuthGuard } from "@/components/common/AuthGuard";
 import { ChevronDown, Loader2, Check, AlertCircle, X, Wrench, Link2 } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperType } from "swiper";
@@ -63,8 +64,8 @@ function OnboardingContent() {
     displayEmail && !displayEmail.endsWith("@gmail.com") && !displayEmail.endsWith("@yahoo.com") && !displayEmail.endsWith("@hotmail.com") && displayEmail.includes("@")
       ? displayEmail.split("@")[1]
       : workspaceSlug
-        ? `${workspaceSlug}.design`
-        : "figr.design";
+        ? `${workspaceSlug}.com`
+        : "workspace.com";
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -83,9 +84,10 @@ function OnboardingContent() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const defaultWsName = user?.name ? `${user.name}'s Workspace` : "My Workspace";
     const workspaceData = {
-      name: workspaceName.trim() || "Figr",
-      slug: workspaceSlug.trim() || workspaceName.toLowerCase().replace(/[^a-z0-9-]/g, "") || "figr",
+      name: workspaceName.trim() || defaultWsName,
+      slug: workspaceSlug.trim() || workspaceName.toLowerCase().replace(/[^a-z0-9-]/g, "") || "workspace",
       companySize: companySize || "1-10",
       role: role || "Software Engineer",
     };
@@ -316,7 +318,7 @@ function OnboardingContent() {
                   type="text"
                   required
                   autoFocus
-                  placeholder="e.g. Figr"
+                  placeholder="e.g. Acme Corp"
                   value={workspaceName}
                   onChange={handleNameChange}
                   className="w-full h-10 px-3 rounded-md bg-[#161724] border border-[#3b4174] focus:border-[#555fbe] focus:ring-1 focus:ring-[#555fbe] text-white text-[13px] outline-none transition-colors"
@@ -1003,8 +1005,10 @@ function OnboardingContent() {
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen w-full bg-[#13141f]" />}>
-      <OnboardingContent />
-    </Suspense>
+    <AuthGuard>
+      <Suspense fallback={<div className="min-h-screen w-full bg-[#13141f]" />}>
+        <OnboardingContent />
+      </Suspense>
+    </AuthGuard>
   );
 }

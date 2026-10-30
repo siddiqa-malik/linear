@@ -6,8 +6,9 @@ import { AuthProvider } from "@/context/AuthContext";
 import { WorkspaceProvider } from "@/context/WorkspaceContext";
 import { UIProvider } from "@/context/UIContext";
 import { CommandPalette } from "@/components/common/CommandPalette";
-import { CreateIssueModal } from "@/components/common/CreateIssueModal";
+import { GlobalCreateIssueModal } from "@/components/common/GlobalCreateIssueModal";
 import { GlobalCreateProjectModal } from "@/components/common/GlobalCreateProjectModal";
+import { ProjectDrawer } from "@/components/common/ProjectDrawer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,8 +43,9 @@ export default function RootLayout({
             <UIProvider>
               {children}
               <CommandPalette />
-              <CreateIssueModal />
+              <GlobalCreateIssueModal />
               <GlobalCreateProjectModal />
+              <ProjectDrawer />
             </UIProvider>
           </WorkspaceProvider>
         </AuthProvider>

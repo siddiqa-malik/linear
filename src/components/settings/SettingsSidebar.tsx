@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { api } from "@/lib/api";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -23,41 +24,35 @@ export function SettingsSidebar({ onAddTeam }: SettingsSidebarProps) {
   const { currentWorkspace, sanitizeWorkspaceName } = useWorkspace();
   const { user } = useAuth();
 
-  const [customTeams, setCustomTeams] = useState<Array<{ _id: string; name: string; color?: string }>>([]);
+  const [teams, setTeams] = useState<Array<{ _id: string; name: string; color?: string }>>([]);
+
+  const fetchTeams = useCallback(async () => {
+    if (!currentWorkspace?._id) {
+      setTeams([]);
+      return;
+    }
+    try {
+      const res = await api.get(`/teams?workspaceId=${currentWorkspace._id}`);
+      const list = res?.data || res || [];
+      if (Array.isArray(list)) {
+        setTeams(list);
+      } else {
+        setTeams([]);
+      }
+    } catch {
+      setTeams([]);
+    }
+  }, [currentWorkspace?._id]);
 
   useEffect(() => {
-    const loadTeams = () => {
-      try {
-        const stored = localStorage.getItem("taskflow_custom_teams");
-        if (stored) {
-          setCustomTeams(JSON.parse(stored));
-        }
-      } catch {}
-    };
-
-    loadTeams();
-    window.addEventListener("taskflow_team_created", loadTeams);
-    window.addEventListener("storage", loadTeams);
+    fetchTeams();
+    window.addEventListener("taskflow_team_created", fetchTeams);
     return () => {
-      window.removeEventListener("taskflow_team_created", loadTeams);
-      window.removeEventListener("storage", loadTeams);
+      window.removeEventListener("taskflow_team_created", fetchTeams);
     };
-  }, []);
-
-  const baseTeams = [{ _id: "team-design-agency", name: "Design agency", color: "#0ea5e9" }];
-  const teams = [...baseTeams, ...customTeams];
+  }, [fetchTeams]);
 
   const [integrationsExpanded, setIntegrationsExpanded] = useState(false);
-  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({
-    default: true,
-  });
-
-  const toggleTeam = (teamId: string) => {
-    setExpandedTeams((prev) => ({
-      ...prev,
-      [teamId]: !prev[teamId],
-    }));
-  };
 
   const isAddTeamActive = pathname === "/settings/teams/new" || currentTab === "add-team";
 
@@ -235,9 +230,20 @@ export function SettingsSidebar({ onAddTeam }: SettingsSidebarProps) {
         {/* ============================================================== */}
         <div>
           {/* Section Header with Teams/Folder Icon */}
-          <div className="flex items-center gap-2 px-2 py-1 text-[11.5px] font-medium text-[#6b7086]">
+          <Link
+            href="/settings/teams"
+            className={`flex items-center gap-2 px-2 py-1 text-[11.5px] font-medium rounded-[5px] transition-colors cursor-pointer group ${
+              pathname === "/settings/teams" || currentTab === "teams"
+                ? "bg-[#23253a] text-white font-medium"
+                : "text-[#6b7086] hover:text-[#e2e4ef] hover:bg-white/[0.04]"
+            }`}
+          >
             <svg
-              className="w-3.5 h-3.5 text-[#6b7086]"
+              className={`w-3.5 h-3.5 transition-colors ${
+                pathname === "/settings/teams" || currentTab === "teams"
+                  ? "text-[#818cf8]"
+                  : "text-[#6b7086] group-hover:text-white"
+              }`}
               viewBox="0 0 16 16"
               fill="none"
               stroke="currentColor"
@@ -247,80 +253,36 @@ export function SettingsSidebar({ onAddTeam }: SettingsSidebarProps) {
               <path d="M2 6h12" />
             </svg>
             <span>Teams</span>
-          </div>
+          </Link>
 
           <div className="mt-0.5 space-y-0.5">
             {/* Dynamic Teams List */}
             {teams.map((team, idx) => {
               const teamKey = team._id || `team-${idx}`;
-              const isExpanded = expandedTeams[teamKey] ?? (idx === 0);
               const teamInitial = team.name ? team.name[0].toUpperCase() : "T";
               const teamColor = team.color || "#e11d48";
-              const isTeamActive = searchParams.get("teamId") === team._id || (idx === 0 && currentTab === "team");
+              const isTeamActive =
+                pathname === `/settings/teams/${team._id}` ||
+                searchParams.get("teamId") === team._id;
 
               return (
-                <div key={teamKey} className="space-y-0.5">
-                  <div className="flex items-center justify-between px-2.5 py-1 rounded-[5px] text-[12px] text-[#8b90a4] hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                    <Link
-                      href={`/settings?tab=team&teamId=${team._id}`}
-                      className="flex items-center gap-1.5 flex-1 truncate"
-                    >
-                      <span
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleTeam(teamKey);
-                        }}
-                        className={`text-[9px] text-[#6b7086] transition-transform duration-100 ${
-                          isExpanded ? "rotate-90 inline-block" : "inline-block"
-                        }`}
-                      >
-                        ▶
-                      </span>
-                      {/* Circular Team Badge with custom team color */}
-                      <div
-                        className="w-3.5 h-3.5 rounded-full text-white flex items-center justify-center text-[8.5px] font-bold shrink-0"
-                        style={{ backgroundColor: teamColor }}
-                      >
-                        {teamInitial}
-                      </div>
-                      <span
-                        className={`truncate ${
-                          isTeamActive ? "text-white font-medium" : ""
-                        }`}
-                      >
-                        {team.name}
-                      </span>
-                    </Link>
+                <Link
+                  key={teamKey}
+                  href={`/settings/teams/${team._id}`}
+                  className={`flex items-center gap-2 px-2.5 py-1 rounded-[5px] text-[12px] transition-colors ${
+                    isTeamActive
+                      ? "bg-[#23253a] text-white font-medium"
+                      : "text-[#8b90a4] hover:text-[#e2e4ef] hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <div
+                    className="w-3.5 h-3.5 rounded-full text-white flex items-center justify-center text-[8.5px] font-bold shrink-0"
+                    style={{ backgroundColor: teamColor }}
+                  >
+                    {teamInitial}
                   </div>
-
-                  {/* Sub-items for Team when expanded */}
-                  {isExpanded && (
-                    <div className="pl-6 space-y-0.5">
-                      <Link
-                        href={`/settings?tab=team&teamId=${team._id}`}
-                        className={`block px-2 py-0.5 text-[11.5px] rounded transition-colors ${
-                          isTeamActive
-                            ? "text-white font-medium"
-                            : "text-[#8b90a4] hover:text-white"
-                        }`}
-                      >
-                        General
-                      </Link>
-                      <Link
-                        href={`/settings?tab=team-workflow&teamId=${team._id}`}
-                        className="block px-2 py-0.5 text-[11.5px] text-[#8b90a4] hover:text-white rounded transition-colors"
-                      >
-                        Workflow
-                      </Link>
-                      <Link
-                        href={`/settings?tab=team-estimates&teamId=${team._id}`}
-                        className="block px-2 py-0.5 text-[11.5px] text-[#8b90a4] hover:text-white rounded transition-colors"
-                      >
-                        Estimates
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                  <span className="truncate">{team.name}</span>
+                </Link>
               );
             })}
 

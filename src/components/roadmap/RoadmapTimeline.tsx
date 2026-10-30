@@ -91,7 +91,7 @@ export function RoadmapTimeline({
   viewMode = "timeline",
   setViewMode,
 }: RoadmapTimelineProps) {
-  const { setCreateProjectModalOpen } = useUI();
+  const { setCreateProjectModalOpen, setActiveProjectId } = useUI();
   const timelineScrollRef = useRef<HTMLDivElement>(null);
 
   const { months, weeks, startDate, today } = useMemo(() => generateTimelineData(), []);
@@ -372,7 +372,7 @@ export function RoadmapTimeline({
 
                     <Link
                       href={`/projects/${project._id}`}
-                      className="text-[13px] font-medium text-[#d1d5db] group-hover:text-white truncate transition-colors"
+                      className="text-[13px] font-medium text-[#d1d5db] group-hover:text-white truncate transition-colors cursor-pointer"
                     >
                       {project.name}
                     </Link>
@@ -471,7 +471,7 @@ export function RoadmapTimeline({
                         <Link
                           href={`/projects/${project._id}`}
                           style={{ left: `${left}px`, width: `${width}px` }}
-                          className="absolute h-8 rounded-lg border border-[#2e324c] bg-[#1c1d2b] hover:bg-[#23263b] shadow-lg shadow-black/30 flex items-center justify-between px-3 text-[12px] text-white transition-all duration-150 group z-10"
+                          className="absolute h-8 rounded-lg border border-[#2e324c] bg-[#1c1d2b] hover:bg-[#23263b] shadow-lg shadow-black/30 flex items-center justify-between px-3 text-[12px] text-white transition-all duration-150 group z-10 cursor-pointer"
                         >
                           {/* Bar Left: 6-dot grip + Project Name */}
                           <div className="flex items-center gap-2 overflow-hidden mr-2">

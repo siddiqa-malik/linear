@@ -18,9 +18,7 @@ interface WorkspaceContextType {
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function sanitizeWorkspaceName(name?: string): string {
-  if (!name || name.includes("'s Team") || name.includes("’s Team")) {
-    return "Figr";
-  }
+  if (!name) return "";
   return name.trim();
 }
 
@@ -75,7 +73,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     try {
       const payload = {
         name: sanitizeWorkspaceName(input.name),
-        slug: (input.slug || input.name).toLowerCase().replace(/[^a-z0-9-]/g, "") || "figr",
+        slug: (input.slug || input.name).toLowerCase().replace(/[^a-z0-9-]/g, "") || "workspace",
         companySize: input.companySize || "1-10",
         role: input.role || "Software Engineer",
       };
