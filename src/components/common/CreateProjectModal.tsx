@@ -1080,6 +1080,7 @@ export function CreateProjectModal({
                                     emails: [emailToInvite],
                                     workspaceId: currentWorkspace._id,
                                     teamName: currentWorkspace.name,
+                                    senderName: user?.name || (user?.email ? user.email.split("@")[0] : "A teammate"),
                                   });
                                   link = res?.data?.inviteLink || res?.inviteLink || res?.data?.details?.[0]?.inviteLink || "";
                                 }
@@ -1124,6 +1125,7 @@ export function CreateProjectModal({
                                   emails: [emailToInvite],
                                   workspaceId: currentWorkspace._id,
                                   teamName: currentWorkspace.name,
+                                  senderName: user?.name || (user?.email ? user.email.split("@")[0] : "A teammate"),
                                 });
                                 link = res?.data?.inviteLink || res?.inviteLink || res?.data?.details?.[0]?.inviteLink || "";
                               }

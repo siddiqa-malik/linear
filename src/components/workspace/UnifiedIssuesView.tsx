@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/workspace/Sidebar";
 import { IssueListView } from "@/components/workspace/IssueListView";
 import { IssueDrawer } from "@/components/common/IssueDrawer";
+import { GitHubImportModal } from "@/components/github/GitHubImportModal";
+import { GithubIcon } from "@/components/icons/SocialIcons";
 import { useUI } from "@/context/UIContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { api } from "@/lib/api";
@@ -107,6 +109,7 @@ export interface UnifiedIssuesViewProps {
   projectData?: any;
   hideSidebar?: boolean;
   hideTopHeader?: boolean;
+  initialTab?: "all" | "active" | "backlog";
 }
 
 /*
@@ -158,6 +161,7 @@ export function UnifiedIssuesView({
   const [project, setProject] = useState<any>(initialProjectData || null);
   const [isLoading, setIsLoading] = useState<boolean>(() => !cachedData && (!tasks || tasks.length === 0));
   const [isStarred, setIsStarred] = useState(false);
+  const [isGithubImportOpen, setIsGithubImportOpen] = useState(false);
 
   // Tabs: "active" | "backlog" | "all"
   const [tab, setTab] = useState<"active" | "backlog" | "all">(initialTab || "all");
@@ -447,6 +451,16 @@ export function UnifiedIssuesView({
 
             <button
               type="button"
+              onClick={() => setIsGithubImportOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#161726] hover:bg-[#1f2133] text-[#c5c8d6] hover:text-white text-xs font-medium border border-white/[0.08] transition cursor-pointer shadow-sm"
+              title="Import issues from GitHub"
+            >
+              <GithubIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Import from GitHub</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setCreateModalOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#5e6ad2] hover:bg-[#6875e5] text-white text-xs font-medium transition cursor-pointer shadow-sm shadow-[#5e6ad2]/20"
             >
@@ -637,6 +651,15 @@ export function UnifiedIssuesView({
 
               <button
                 type="button"
+                onClick={() => setIsGithubImportOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1c1e2e] hover:bg-[#25283d] border border-white/[0.08] text-[#c5c8d6] hover:text-white text-xs font-medium transition cursor-pointer"
+              >
+                <GithubIcon className="w-3.5 h-3.5" />
+                <span>Import from GitHub</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => window.open("https://linear.app/docs", "_blank")}
                 className="px-3.5 py-1.5 rounded-lg bg-[#1c1e2e] hover:bg-[#25283d] border border-white/[0.08] text-[#c5c8d6] hover:text-white text-xs font-medium transition cursor-pointer"
               >
@@ -661,6 +684,17 @@ export function UnifiedIssuesView({
 
       {/* Drawer */}
       <IssueDrawer taskId={activeIssueId} onTaskUpdated={fetchData} />
+
+      {/* GitHub Import Modal */}
+      <GitHubImportModal
+        isOpen={isGithubImportOpen}
+        onClose={() => setIsGithubImportOpen(false)}
+        onSuccess={() => {
+          fetchData();
+        }}
+        defaultTeamId={teamId}
+        defaultProjectId={projectId}
+      />
     </div>
   );
 

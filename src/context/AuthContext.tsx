@@ -48,6 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: userData.name,
           email: userData.email,
           avatar: userData.avatar,
+          title: userData.title || "",
+          username: userData.username || "",
           role: userData.role || "user",
           createdAt: userData.createdAt || new Date().toISOString(),
         });
@@ -56,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         removeAuthToken();
         if (typeof window !== "undefined") {
           sessionStorage.removeItem("recent_auth_email");
+      localStorage.removeItem("taskflow_current_workspace_id");
         }
         setUser(null);
         setTokenState(null);
@@ -64,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       removeAuthToken();
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("recent_auth_email");
+      localStorage.removeItem("taskflow_current_workspace_id");
       }
       setUser(null);
       setTokenState(null);
@@ -94,6 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: userData.name,
           email: userData.email,
           avatar: userData.avatar,
+          title: userData.title || "",
+          username: userData.username || "",
           role: userData.role || "user",
           createdAt: userData.createdAt || new Date().toISOString(),
         });
@@ -127,6 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: userData.name,
           email: userData.email,
           avatar: userData.avatar,
+          title: userData.title || "",
+          username: userData.username || "",
           role: userData.role || "user",
           createdAt: userData.createdAt || new Date().toISOString(),
         });
@@ -193,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     removeAuthToken();
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("recent_auth_email");
+      localStorage.removeItem("taskflow_current_workspace_id");
     }
     setUser(null);
     setTokenState(null);

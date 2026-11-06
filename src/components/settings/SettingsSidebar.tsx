@@ -64,6 +64,7 @@ export function SettingsSidebar({ onAddTeam }: SettingsSidebarProps) {
 
   const isTabActive = (tabKey: string, routePath?: string) => {
     if (routePath && pathname === routePath) return true;
+    if (tabKey === "profile" && (pathname === "/settings/profile" || (pathname === "/settings" && currentTab === "profile"))) return true;
     if (pathname === "/settings") {
       if (tabKey === "overview" && (!currentTab || currentTab === "overview")) return true;
       return currentTab === tabKey;

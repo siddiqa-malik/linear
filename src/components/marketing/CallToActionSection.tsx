@@ -5,7 +5,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
 
 export function CallToActionSection() {
   return (
-    <section className="relative overflow-hidden border-t border-white/[0.06] py-32 bg-[#08090a] text-center">
+    <section className="relative overflow-hidden border-t border-white/[0.06] py-32 bg-[#080915] text-center">
       {/* Background Radial Glow */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center -z-10">
         <div className="h-[450px] w-[650px] rounded-full bg-gradient-to-t from-[#5e6ad2]/20 via-[#5e6ad2]/10 to-transparent blur-3xl" />

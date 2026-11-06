@@ -44,6 +44,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setWorkspaces(validList);
 
       setCurrentWorkspaceState((prev) => {
+        if (typeof window !== "undefined") {
+          const savedWsId = localStorage.getItem("taskflow_current_workspace_id");
+          if (savedWsId) {
+            const found = validList.find((w) => w._id === savedWsId || w.slug === savedWsId);
+            if (found) return found;
+          }
+        }
         if (prev && validList.some((w) => w._id === prev._id || w.slug === prev.slug)) {
           return prev;
         }
@@ -96,6 +103,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentWorkspace = (workspace: Workspace | null) => {
     setCurrentWorkspaceState(workspace);
+    if (typeof window !== "undefined") {
+      if (workspace?._id) {
+        localStorage.setItem("taskflow_current_workspace_id", workspace._id);
+      } else {
+        localStorage.removeItem("taskflow_current_workspace_id");
+      }
+    }
   };
 
   return (

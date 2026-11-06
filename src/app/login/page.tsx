@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { api } from "@/lib/api";
 import { triggerGoogleAuth } from "@/lib/googleAuth";
 import { ArrowLeft, Loader2, Sparkles, X, KeyRound } from "lucide-react";
 
@@ -21,17 +23,73 @@ export default function LoginPage() {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   const { login, loginWithGoogle, checkEmailExists } = useAuth();
+  const { fetchWorkspaces, setCurrentWorkspace } = useWorkspace();
   const router = useRouter();
 
-  // Pick up any previously entered or signup email if available
+  // Pick up any previously entered or signup email / invite token if available
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("recent_auth_email");
+      const params = new URLSearchParams(window.location.search);
+      const paramEmail = params.get("email");
+      const paramInviteToken = params.get("inviteToken");
+      if (paramInviteToken) {
+        sessionStorage.setItem("pending_invite_token", paramInviteToken);
+      }
+      const stored = paramEmail || sessionStorage.getItem("recent_auth_email");
       if (stored && !email) {
         setEmail(stored);
       }
     }
   }, []);
+
+  /*
+   * Complete Auth and automatically provision invited workspace if pending invite exists.
+   * Linear Standard: Skips workspace creation & onboarding completely for invited users.
+   */
+  const completeAuthAndRedirect = async () => {
+    const inviteToken =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("inviteToken") ||
+          sessionStorage.getItem("pending_invite_token")
+        : null;
+
+    if (inviteToken) {
+      try {
+        const res = await api.post(`/workspaces/invitations/${inviteToken}/accept`);
+        const joinedWs = res?.data || res?.workspace;
+        const joinedWsId = joinedWs?._id || joinedWs?.id;
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("pending_invite_token");
+          if (joinedWsId) {
+            localStorage.setItem("taskflow_current_workspace_id", joinedWsId);
+          }
+        }
+        const wsList = await fetchWorkspaces();
+        if (joinedWsId) {
+          const match = wsList.find((w) => w._id === joinedWsId || w.slug === joinedWs.slug);
+          if (match) {
+            setCurrentWorkspace(match);
+          } else if (joinedWs) {
+            setCurrentWorkspace(joinedWs);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to auto-accept invite upon login:", e);
+      }
+    } else {
+      // Auto-bind case: Fetch workspaces (auto-bound in backend by invited email)
+      const wsList = await fetchWorkspaces();
+      if (wsList && wsList.length > 0) {
+        const savedWsId = typeof window !== "undefined" ? localStorage.getItem("taskflow_current_workspace_id") : null;
+        const active = (savedWsId && wsList.find((w) => w._id === savedWsId)) || wsList[0];
+        if (active) {
+          setCurrentWorkspace(active);
+        }
+      }
+    }
+
+    router.push("/issues/active");
+  };
 
   // Real Google Sign-In with Google Identity Services (GIS)
   const handleGoogleLogin = async () => {
@@ -57,7 +115,7 @@ export default function LoginPage() {
           avatar: result.user.avatar,
         }, { isSignUp: false });
 
-        router.push("/issues/active");
+        await completeAuthAndRedirect();
       }
     } catch (err: any) {
       if (
@@ -73,7 +131,9 @@ export default function LoginPage() {
         }
         const redirectEmail = encodeURIComponent(googleUser?.email || "");
         const redirectName = encodeURIComponent(googleUser?.name || "");
-        router.push(`/signup?reason=unregistered&email=${redirectEmail}&name=${redirectName}`);
+        const pendingToken = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite_token") : null;
+        const inviteParam = pendingToken ? `&inviteToken=${encodeURIComponent(pendingToken)}` : "";
+        router.push(`/signup?reason=unregistered&email=${redirectEmail}&name=${redirectName}${inviteParam}`);
         return;
       }
       setError(err?.message || "Google sign in was cancelled or failed.");
@@ -95,7 +155,7 @@ export default function LoginPage() {
         email: "siddiqa.demo@gmail.com",
         avatar: undefined,
       }, { isSignUp: false });
-      router.push("/issues/active");
+      await completeAuthAndRedirect();
     } catch (err: any) {
       if (
         err?.notRegistered ||
@@ -181,7 +241,7 @@ export default function LoginPage() {
       }
 
       await login(targetEmail, password || "Password123!");
-      router.push("/issues/active");
+      await completeAuthAndRedirect();
     } catch (err: any) {
       setError(err?.message || "Failed to log in with code");
     } finally {
@@ -200,7 +260,7 @@ export default function LoginPage() {
 
     try {
       await login(`sso@${ssoDomain.trim()}`, "sso123");
-      router.push("/issues/active");
+      await completeAuthAndRedirect();
     } catch (err: any) {
       setError(err?.message || "SSO authentication failed");
     } finally {

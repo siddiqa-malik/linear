@@ -17,7 +17,7 @@ function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, logout } = useAuth();
-  const { createWorkspace, currentWorkspace } = useWorkspace();
+  const { createWorkspace, currentWorkspace, fetchWorkspaces, setCurrentWorkspace } = useWorkspace();
   const { setTheme } = useUI();
   const [step, setStep] = useState(1); // 1 = Workspace Creation, 2 = Welcome Carousel
 
@@ -54,6 +54,51 @@ function OnboardingContent() {
       setSelectedTeam(workspaceName.trim());
     }
   }, [currentWorkspace?.name, workspaceName]);
+
+  // Linear Standard: If user has a pending invitation or already has workspaces, bypass onboarding completely
+  useEffect(() => {
+    async function checkPendingInvitationOrWorkspaces() {
+      if (typeof window === "undefined") return;
+      const inviteToken =
+        searchParams?.get("inviteToken") ||
+        sessionStorage.getItem("pending_invite_token");
+
+      if (inviteToken) {
+        try {
+          const res = await api.post(`/workspaces/invitations/${inviteToken}/accept`);
+          sessionStorage.removeItem("pending_invite_token");
+          const joinedWs = res?.data || res?.workspace;
+          const joinedWsId = joinedWs?._id || joinedWs?.id;
+          if (joinedWsId) {
+            localStorage.setItem("taskflow_current_workspace_id", joinedWsId);
+          }
+          const wsList = await fetchWorkspaces();
+          if (joinedWsId) {
+            const match = wsList.find((w) => w._id === joinedWsId || w.slug === joinedWs.slug);
+            if (match) setCurrentWorkspace(match);
+          }
+          router.push("/issues/active");
+          return;
+        } catch (e) {
+          console.warn("Could not auto-accept invite in onboarding:", e);
+        }
+      }
+
+      // Check if user has workspaces from backend (e.g. auto-bound by email invitation)
+      try {
+        const wsList = await fetchWorkspaces();
+        if (wsList && wsList.length > 0) {
+          const targetWs = wsList[0];
+          if (targetWs?._id) {
+            localStorage.setItem("taskflow_current_workspace_id", targetWs._id);
+          }
+          setCurrentWorkspace(targetWs);
+          router.push("/issues/active");
+        }
+      } catch {}
+    }
+    checkPendingInvitationOrWorkspaces();
+  }, [searchParams, fetchWorkspaces, setCurrentWorkspace, router]);
 
   // Real Google / signup email of the authentic logged-in user (strictly no designer mockup fallback)
   const displayEmail =

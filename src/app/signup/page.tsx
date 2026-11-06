@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { api } from "@/lib/api";
 import { triggerGoogleAuth } from "@/lib/googleAuth";
 import { ArrowLeft, Loader2, Sparkles, X, KeyRound, AlertCircle } from "lucide-react";
 
@@ -23,15 +25,22 @@ export default function SignupPage() {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   const { register, loginWithGoogle } = useAuth();
+  const { fetchWorkspaces, setCurrentWorkspace } = useWorkspace();
   const router = useRouter();
 
-  // Detect if redirected from /login due to unregistered account
+  // Detect if redirected from /login due to unregistered account or invitation link
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const reason = params.get("reason");
       const paramEmail = params.get("email");
       const paramName = params.get("name");
+      const paramInviteToken = params.get("inviteToken");
+
+      if (paramInviteToken) {
+        sessionStorage.setItem("pending_invite_token", paramInviteToken);
+      }
+
       const isUnregistered =
         reason === "unregistered" ||
         sessionStorage.getItem("auth_redirect_reason") === "unregistered_attempt";
@@ -58,10 +67,67 @@ export default function SignupPage() {
     }
   }, []);
 
+  /*
+   * Complete Auth and automatically provision invited workspace if pending invite exists.
+   * Linear Standard: Bypasses /onboarding and usual workspace creation completely.
+   */
+  const completeAuthAndRedirect = async (isNewUser: boolean = true) => {
+    const inviteToken =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("inviteToken") ||
+          sessionStorage.getItem("pending_invite_token")
+        : null;
+
+    if (inviteToken) {
+      try {
+        const res = await api.post(`/workspaces/invitations/${inviteToken}/accept`);
+        const joinedWs = res?.data || res?.workspace;
+        const joinedWsId = joinedWs?._id || joinedWs?.id;
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("pending_invite_token");
+          if (joinedWsId) {
+            localStorage.setItem("taskflow_current_workspace_id", joinedWsId);
+          }
+        }
+        const wsList = await fetchWorkspaces();
+        if (joinedWsId) {
+          const match = wsList.find((w) => w._id === joinedWsId || w.slug === joinedWs.slug);
+          if (match) {
+            setCurrentWorkspace(match);
+          } else if (joinedWs) {
+            setCurrentWorkspace(joinedWs);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to auto-accept invite upon signup:", e);
+      }
+      // Linear Rule: Skip onboarding completely for invited users
+      router.push("/issues/active");
+      return;
+    }
+
+    // Auto-bind check: If user was invited by email, backend auto-binds them
+    const wsList = await fetchWorkspaces();
+    if (wsList && wsList.length > 0) {
+      const targetWs = wsList[0];
+      if (targetWs?._id && typeof window !== "undefined") {
+        localStorage.setItem("taskflow_current_workspace_id", targetWs._id);
+      }
+      setCurrentWorkspace(targetWs);
+      router.push("/issues/active");
+      return;
+    }
+
+    if (isNewUser) {
+      router.push("/onboarding");
+    } else {
+      router.push("/issues/active");
+    }
+  };
+
   // Real Google Sign-Up with Google Identity Services (GIS)
   const handleGoogleSignup = async () => {
     setError(null);
-    setInfoMessage(null);
     setIsLoading(true);
     setLoadingType("google");
 
@@ -87,11 +153,7 @@ export default function SignupPage() {
           sessionStorage.setItem("recent_auth_email", result.user.email);
         }
 
-        if (authRes?.isNewUser) {
-          router.push("/onboarding");
-        } else {
-          router.push("/issues/active");
-        }
+        await completeAuthAndRedirect(authRes?.isNewUser);
       }
     } catch (err: any) {
       setError(err?.message || "Google sign up was cancelled or failed.");
@@ -122,11 +184,7 @@ export default function SignupPage() {
         sessionStorage.setItem("recent_auth_email", "siddiqa.demo@gmail.com");
       }
 
-      if (authRes?.isNewUser) {
-        router.push("/onboarding");
-      } else {
-        router.push("/issues/active");
-      }
+      await completeAuthAndRedirect(authRes?.isNewUser);
     } finally {
       setIsLoading(false);
       setLoadingType(null);
@@ -142,20 +200,28 @@ export default function SignupPage() {
     setLoadingType("email");
 
     try {
-      const displayName = name.trim() || email.split("@")[0];
-      await register(displayName, email.trim(), password || "Password123!");
+      const cleanEmail = email.trim().toLowerCase();
+      const derivedName = name.trim() || cleanEmail.split("@")[0] || "User";
+      const userPassword = password || "Password123!";
+
+      await register(derivedName, cleanEmail, userPassword);
 
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("recent_auth_email", email.trim());
+        sessionStorage.setItem("recent_auth_email", cleanEmail);
       }
 
-      // Transition to "Check your email" screen
-      setIsLoading(false);
-      setLoadingType(null);
-      setCodeMode(false);
+      // Check if user has pending invite token
+      const pendingToken = typeof window !== "undefined" ? sessionStorage.getItem("pending_invite_token") : null;
+      if (pendingToken) {
+        await completeAuthAndRedirect(true);
+        return;
+      }
+
       setView("check_email");
     } catch (err: any) {
-      setError(err?.message || "Failed to create account in database");
+      const msg = err?.message || "Registration failed. Please try again.";
+      setError(msg);
+    } finally {
       setIsLoading(false);
       setLoadingType(null);
     }
@@ -169,8 +235,7 @@ export default function SignupPage() {
     setLoadingType("code");
 
     try {
-      // User is verified, navigate to Onboarding
-      router.push("/onboarding");
+      await completeAuthAndRedirect(true);
     } finally {
       setIsLoading(false);
       setLoadingType(null);
@@ -190,7 +255,7 @@ export default function SignupPage() {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("recent_auth_email", `sso@${ssoDomain.trim()}`);
       }
-      router.push("/onboarding");
+      await completeAuthAndRedirect(true);
     } catch (err: any) {
       setError(err?.message || "SSO registration failed");
     } finally {
@@ -228,7 +293,7 @@ export default function SignupPage() {
 
             {/* Subtitle with dynamic user email */}
             <p className="text-[13px] text-[#9ca3af] leading-relaxed max-w-[280px] text-center mb-0">
-              We've sent a temporary login link.
+              We&apos;ve sent a temporary login link.
               <br />
               Please check your inbox at{" "}
               <strong className="text-white font-medium break-all">
@@ -322,101 +387,108 @@ export default function SignupPage() {
               </div>
             )}
 
-            {/* Error message */}
-            {error && (
-              <div className="w-full mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-2.5 text-center text-xs text-red-300 animate-in fade-in duration-150">
-                {error}
-              </div>
-            )}
-
-            {/* Main Options View */}
+            {/* VIEW 1: OPTIONS VIEW */}
             {view === "options" && (
-              <div className="w-full space-y-3">
+              <div className="w-full flex flex-col gap-2.5">
                 {/* 1. Continue with Google */}
                 <button
                   type="button"
                   onClick={handleGoogleSignup}
                   disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center gap-2.5 bg-[#555fbe] hover:bg-[#5f69ce] active:bg-[#4f58b0] text-white text-[13px] font-medium rounded-md transition-all shadow-sm cursor-pointer disabled:opacity-70"
+                  className="w-full h-11 flex items-center justify-center gap-2.5 bg-[#404383] hover:bg-[#4a4e98] active:bg-[#383b73] text-white text-[13px] font-medium rounded-md transition cursor-pointer shadow-sm disabled:opacity-70"
                 >
                   {isLoading && loadingType === "google" ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
                   ) : (
                     <>
-                      <svg
-                        className="w-4 h-4 fill-white shrink-0"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+                      <svg className="w-4 h-4" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.17 0 9.99 0 12s.45 3.83 1.25 5.42l4.03-3.15z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                        />
                       </svg>
                       <span>Continue with Google</span>
                     </>
                   )}
                 </button>
 
-                {/* 2. Continue with Email */}
+                {/* 2. Continue with email */}
                 <button
                   type="button"
-                  onClick={() => setView("email")}
-                  disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center bg-[#292b3a] hover:bg-[#323547] active:bg-[#252735] text-[#e6e7ee] text-[13px] font-medium rounded-md transition-all cursor-pointer"
+                  onClick={() => {
+                    setError(null);
+                    setView("email");
+                  }}
+                  className="w-full h-11 flex items-center justify-center bg-[#1d1e28] hover:bg-[#222431] active:bg-[#181922] text-[#8e90a5] hover:text-[#d3d5e2] text-[13px] font-normal rounded-md transition cursor-pointer"
                 >
-                  <span>Continue with Email</span>
+                  Continue with email
                 </button>
 
                 {/* 3. Continue with SAML SSO */}
                 <button
                   type="button"
-                  onClick={() => setView("sso")}
-                  disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center bg-[#292b3a] hover:bg-[#323547] active:bg-[#252735] text-[#e6e7ee] text-[13px] font-medium rounded-md transition-all cursor-pointer"
+                  onClick={() => {
+                    setError(null);
+                    setView("sso");
+                  }}
+                  className="w-full h-11 flex items-center justify-center bg-[#1d1e28] hover:bg-[#222431] active:bg-[#181922] text-[#8e90a5] hover:text-[#d3d5e2] text-[13px] font-normal rounded-md transition cursor-pointer"
                 >
-                  <span>Continue with SAML SSO</span>
+                  Continue with SAML SSO
                 </button>
               </div>
             )}
 
-            {/* Email Registration View */}
+            {/* VIEW 2: EMAIL SIGN UP FORM */}
             {view === "email" && (
-              <form onSubmit={handleEmailSubmit} className="w-full space-y-3 animate-in fade-in duration-200">
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full h-11 bg-[#1b1c28] border border-white/[0.08] focus:border-[#555fbe] text-white text-[13px] rounded-md px-3.5 outline-none placeholder:text-[#5d6072] transition"
-                  />
-                </div>
+              <form onSubmit={handleEmailSubmit} className="w-full flex flex-col gap-2.5 animate-in fade-in duration-150">
+                <input
+                  type="text"
+                  placeholder="Your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full h-11 px-3.5 bg-[#16171f] border border-[#353965] focus:border-[#555fbe] text-white text-[13px] rounded-md outline-none placeholder:text-[#52577c] transition"
+                />
 
-                <div>
-                  <input
-                    type="email"
-                    required
-                    autoFocus
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-11 bg-[#1b1c28] border border-white/[0.08] focus:border-[#555fbe] text-white text-[13px] rounded-md px-3.5 outline-none placeholder:text-[#5d6072] transition"
-                  />
-                </div>
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-11 px-3.5 bg-[#16171f] border border-[#353965] focus:border-[#555fbe] text-white text-[13px] rounded-md outline-none placeholder:text-[#52577c] transition"
+                />
 
-                <div>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-11 bg-[#1b1c28] border border-white/[0.08] focus:border-[#555fbe] text-white text-[13px] rounded-md px-3.5 outline-none placeholder:text-[#5d6072] transition"
-                  />
-                </div>
+                <input
+                  type="password"
+                  placeholder="Create password (optional)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-11 px-3.5 bg-[#16171f] border border-[#353965] focus:border-[#555fbe] text-white text-[13px] rounded-md outline-none placeholder:text-[#52577c] transition"
+                />
+
+                {error && (
+                  <div className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-center text-xs text-red-300">
+                    {error}
+                  </div>
+                )}
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center bg-[#555fbe] hover:bg-[#5f69ce] text-white text-[13px] font-medium rounded-md transition-all cursor-pointer disabled:opacity-70 shadow-sm"
+                  className="w-full h-11 mt-1 flex items-center justify-center bg-[#404383] hover:bg-[#4a4e98] active:bg-[#383b73] text-white text-[13px] font-medium rounded-md transition-all cursor-pointer shadow-sm disabled:opacity-70"
                 >
                   {isLoading && loadingType === "email" ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -434,30 +506,34 @@ export default function SignupPage() {
                   className="w-full pt-1 flex items-center justify-center gap-1.5 text-[12px] text-[#707383] hover:text-white transition cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>All options</span>
+                  <span>Other options</span>
                 </button>
               </form>
             )}
 
-            {/* SAML SSO View */}
+            {/* VIEW 3: SAML SSO VIEW */}
             {view === "sso" && (
-              <form onSubmit={handleSsoSubmit} className="w-full space-y-3 animate-in fade-in duration-200">
-                <div>
-                  <input
-                    type="text"
-                    required
-                    autoFocus
-                    placeholder="company.com"
-                    value={ssoDomain}
-                    onChange={(e) => setSsoDomain(e.target.value)}
-                    className="w-full h-11 bg-[#1b1c28] border border-white/[0.08] focus:border-[#555fbe] text-white text-[13px] rounded-md px-3.5 outline-none placeholder:text-[#5d6072] transition"
-                  />
-                </div>
+              <form onSubmit={handleSsoSubmit} className="w-full flex flex-col gap-2.5 animate-in fade-in duration-150">
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Company domain (e.g. acme.com)"
+                  value={ssoDomain}
+                  onChange={(e) => setSsoDomain(e.target.value)}
+                  className="w-full h-11 px-3.5 bg-[#16171f] border border-[#353965] focus:border-[#555fbe] text-white text-[13px] rounded-md outline-none placeholder:text-[#52577c] transition"
+                />
+
+                {error && (
+                  <div className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-center text-xs text-red-300">
+                    {error}
+                  </div>
+                )}
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 flex items-center justify-center bg-[#555fbe] hover:bg-[#5f69ce] text-white text-[13px] font-medium rounded-md transition-all cursor-pointer disabled:opacity-70 shadow-sm"
+                  className="w-full h-11 mt-1 flex items-center justify-center bg-[#404383] hover:bg-[#4a4e98] active:bg-[#383b73] text-white text-[13px] font-medium rounded-md transition cursor-pointer shadow-sm disabled:opacity-70"
                 >
                   {isLoading && loadingType === "sso" ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -475,78 +551,59 @@ export default function SignupPage() {
                   className="w-full pt-1 flex items-center justify-center gap-1.5 text-[12px] text-[#707383] hover:text-white transition cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>All options</span>
+                  <span>Other options</span>
                 </button>
               </form>
             )}
 
-            {/* Footer Legal Terms from Screenshot */}
-            <p className="mt-8 text-[11px] leading-relaxed text-[#707383] text-center max-w-[280px]">
-              By signing up, you agree to the{" "}
-              <Link href="#" className="text-[#8f92a3] hover:text-white transition">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="#" className="text-[#8f92a3] hover:text-white transition">
-                Data Processing Agreement
-              </Link>
-              .
-            </p>
-
-            <p className="mt-4 text-[12px] text-[#707383]">
+            {/* Bottom Footer: Sign in link */}
+            <div className="mt-8 text-[12.5px] text-[#6d718a]">
               Already have an account?{" "}
-              <Link href="/login" className="text-[#858fe8] hover:text-white transition font-medium">
+              <Link
+                href="/login"
+                className="text-[#9ea3bf] hover:text-white transition font-medium cursor-pointer"
+              >
                 Log in
               </Link>
-            </p>
+            </div>
           </>
         )}
       </div>
 
-      {/* Google Client ID Setup Guide Modal */}
+      {/* Google Modal Fallback */}
       {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#1a1b26] p-6 shadow-2xl text-left">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-xl bg-[#1c1d29] border border-[#2b2d3d] p-6 shadow-2xl text-left relative">
             <button
+              type="button"
               onClick={() => setShowGoogleModal(false)}
-              className="absolute top-4 right-4 text-[#8a8f98] hover:text-white p-1 rounded-md transition cursor-pointer"
+              className="absolute top-4 right-4 text-[#8a8f98] hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
-
-            <div className="w-10 h-10 rounded-xl bg-[#555fbe]/20 border border-[#555fbe]/40 flex items-center justify-center mb-4">
-              <KeyRound className="w-5 h-5 text-[#858fe8]" />
+            <div className="w-10 h-10 rounded-full bg-[#5e6ad2]/20 flex items-center justify-center mb-4">
+              <Sparkles className="w-5 h-5 text-[#7a85e8]" />
             </div>
-
-            <h3 className="text-base font-semibold text-white tracking-tight mb-2">
-              Google Client ID Required
+            <h3 className="text-base font-medium text-white mb-1">
+              Google Sign-In Setup
             </h3>
-
-            <p className="text-xs text-[#8a8f98] leading-relaxed mb-4">
-              Real Google Sign-In requires your Google Cloud OAuth Client ID. 
-              Once generated, paste it into your project’s <code className="text-[#858fe8] bg-white/[0.06] px-1 py-0.5 rounded">.env.local</code> file:
+            <p className="text-xs text-[#8a8f98] leading-relaxed mb-5">
+              Google OAuth Client ID is not yet configured in <code className="text-[#c5c8d6] bg-black/40 px-1 py-0.5 rounded">.env.local</code>. You can test immediately using demo mode.
             </p>
-
-            <div className="bg-[#11121a] border border-white/[0.08] rounded-lg p-2.5 mb-5 font-mono text-[11px] text-[#c0caf5] select-all break-all">
-              NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-id.apps.googleusercontent.com
-            </div>
-
-            <div className="space-y-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleDemoGoogleSignup}
-                className="w-full flex items-center justify-center gap-2 bg-[#555fbe] hover:bg-[#5f69ce] text-white text-xs font-medium py-2.5 rounded-lg transition cursor-pointer shadow-md"
+                className="flex-1 py-2 rounded-lg bg-[#5e6ad2] hover:bg-[#6875e5] text-white text-xs font-medium transition cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Test with Demo Account</span>
+                Sign up with Demo Account
               </button>
-
               <button
                 type="button"
                 onClick={() => setShowGoogleModal(false)}
-                className="w-full text-center text-xs text-[#8a8f98] hover:text-white py-1.5 transition cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-xs text-[#8a8f98] hover:text-white transition cursor-pointer"
               >
-                I will add Client ID
+                Cancel
               </button>
             </div>
           </div>

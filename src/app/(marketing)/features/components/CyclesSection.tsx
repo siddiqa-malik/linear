@@ -1,129 +1,135 @@
-﻿"use client";
+"use client";
 
-import { Activity, Clock, Flame } from "lucide-react";
+import React from "react";
+import { BarChart3, Clock, Flame, Repeat, TrendingUp, Zap } from "lucide-react";
 
+/*
+ * CyclesSection Component
+ *
+ * Implements the "Build momentum with Cycles" feature showcase matching
+ * the canonical Linear design (media_1791442560395.png).
+ *
+ * Section Architecture:
+ * 1. Top Section:
+ *    - Left-anchored title "Build momentum / with Cycles" with gradient text.
+ *    - Overlapping centered floating Cycles burndown & timeline chart (/cyclesection-hero.png)
+ *      exported directly from Figma with natural glass shadows.
+ * 2. Middle Anchor Statement:
+ *    - "Cycles focus your team on what to work on next. They are not sprints, they are continuous rhythms."
+ * 3. Feature Matrix:
+ *    - 6 clean points arranged in a 3-column grid highlighting the key advantages
+ *      of continuous cycles over traditional sprint planning ceremonies.
+ */
 export function CyclesSection() {
   return (
-    <section id="method" className="relative border-t border-white/[0.06] py-28 md:py-36 bg-[#08090a]">
-      <div className="mx-auto max-w-6xl px-6">
-        {/* Section Heading */}
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
-            Build momentum
-            <br />
-            <span className="text-gradient">with Cycles</span>
-          </h2>
-          <p className="mt-4 text-base font-normal leading-relaxed text-[#8a8f98]">
-            Cycles focus your team on what matters now. They run automatically on a regular schedule, without tedious sprint planning.
+    <section id="method" className="relative border-t border-white/[0.06] py-28 md:py-36 bg-[#080915] overflow-hidden">
+      {/* Background ambient radial glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/4 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[800px] rounded-full bg-[#5e6ad2]/[0.04] blur-[120px]"
+        aria-hidden="true"
+      />
+
+      <div className="relative mx-auto max-w-6xl px-6">
+        {/* ============================================================ */}
+        {/* 1. Section Heading & Floating Cycles Hero Visual             */}
+        {/* ============================================================ */}
+        <div className="relative mx-auto max-w-5xl">
+          {/* Section Heading: Overlaps the upper-left of the floating cycles graph */}
+          <div className="relative z-10 text-left pl-2 sm:pl-4 md:pl-6 -mb-6 sm:-mb-10 md:-mb-14 pointer-events-none">
+            <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-5xl md:text-6xl leading-[1.08]">
+              Build momentum
+              <br />
+              <span className="text-gradient">with Cycles</span>
+            </h2>
+          </div>
+
+          {/* Floating Cycles Chart Hero Visual (/cyclesection-hero.png) */}
+          <div className="relative mx-auto flex justify-center">
+            <img
+              src="/cyclesection-hero.png"
+              alt="Build momentum with Cycles"
+              className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-[0_25px_50px_rgba(0,0,0,0.8)]"
+              loading="lazy"
+            />
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* 2. Central Anchor Statement                                  */}
+        {/* ============================================================ */}
+        <div className="mx-auto mt-16 md:mt-24 max-w-2xl text-center">
+          <p className="text-lg md:text-xl font-medium tracking-tight text-white/90">
+            Cycles focus your team on what to work on next. They are not sprints, they are continuous rhythms.
           </p>
         </div>
 
-        {/* Linear Cycles Burndown Chart Graphic */}
-        <div className="relative mx-auto mt-16 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-[#0e0f15] p-6 md:p-8 shadow-2xl">
-          {/* Header of Cycle Chart */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-white">Cycle 32</span>
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">Active</span>
-              </div>
-              <span className="text-xs text-[#8a8f98]">Oct 1 — Oct 15 • 4 days remaining</span>
-            </div>
-
-            <div className="flex items-center gap-6 text-xs">
-              <div>
-                <span className="text-[#62666d] block text-[11px]">Scope</span>
-                <span className="font-semibold text-white">48 points</span>
-              </div>
-              <div>
-                <span className="text-[#62666d] block text-[11px]">Completed</span>
-                <span className="font-semibold text-[#5e6ad2]">84%</span>
-              </div>
-              <div>
-                <span className="text-[#62666d] block text-[11px]">Velocity</span>
-                <span className="font-semibold text-white">12.4 pts/day</span>
-              </div>
-            </div>
-          </div>
-
-          {/* SVG Burndown Chart Visual */}
-          <div className="relative mt-6 h-64 w-full">
-            <svg className="h-full w-full overflow-visible" viewBox="0 0 600 200" preserveAspectRatio="none">
-              {/* Horizontal Grid lines */}
-              <line x1="0" y1="40" x2="600" y2="40" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
-              <line x1="0" y1="100" x2="600" y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
-              <line x1="0" y1="160" x2="600" y2="160" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
-
-              {/* Ideal trajectory (dotted line) */}
-              <line x1="20" y1="30" x2="580" y2="180" stroke="#8a8f98" strokeOpacity="0.3" strokeDasharray="6 6" strokeWidth="2" />
-
-              {/* Actual Burndown Curved Gradient Line */}
-              <defs>
-                <linearGradient id="cycleLineGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#5e6ad2" />
-                  <stop offset="50%" stopColor="#818cf8" />
-                  <stop offset="100%" stopColor="#38bdf8" />
-                </linearGradient>
-                <linearGradient id="cycleFillGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(94,106,210,0.25)" />
-                  <stop offset="100%" stopColor="transparent" />
-                </linearGradient>
-              </defs>
-
-              {/* Fill area beneath curve */}
-              <path
-                d="M 20 30 Q 150 45, 250 85 T 450 145 T 520 165 L 520 200 L 20 200 Z"
-                fill="url(#cycleFillGrad)"
-              />
-
-              {/* Glowing Line */}
-              <path
-                d="M 20 30 Q 150 45, 250 85 T 450 145 T 520 165"
-                fill="none"
-                stroke="url(#cycleLineGrad)"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-
-              {/* Interactive glowing node at current position */}
-              <circle cx="520" cy="165" r="5" fill="#38bdf8" className="shadow-[0_0_12px_#38bdf8]" />
-              <circle cx="520" cy="165" r="10" fill="none" stroke="#38bdf8" strokeOpacity="0.4" className="animate-ping" />
-            </svg>
-
-            {/* Days indicator row */}
-            <div className="mt-4 flex justify-between text-[11px] text-[#62666d]">
-              <span>Day 1</span>
-              <span>Day 4</span>
-              <span>Day 7 (Midway)</span>
-              <span>Day 11 (Today)</span>
-              <span>Day 14</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3 Pillars */}
-        <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6">
-            <Clock className="h-5 w-5 text-[#5e6ad2]" />
-            <h3 className="mt-3 text-base font-semibold text-white">Automated scheduling</h3>
-            <p className="mt-2 text-xs leading-relaxed text-[#8a8f98]">
-              Cycles roll over automatically on your schedule. Unfinished tasks carry over without interrupting team flow.
+        {/* ============================================================ */}
+        {/* 3. 6 Feature Pillars (3 Columns x 2 Rows)                    */}
+        {/* ============================================================ */}
+        <div className="mt-12 grid grid-cols-1 gap-x-12 gap-y-10 sm:grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto">
+          {/* Point 1 */}
+          <div className="text-left">
+            <Clock className="h-4 w-4 text-[#8a8f98] mb-2.5" />
+            <h3 className="text-sm md:text-base font-semibold text-white">
+              Automatic scheduling
+            </h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#8a8f98]">
+              Cycles run on a regular, automated cadence so your team always maintains momentum without tedious planning.
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6">
-            <Activity className="h-5 w-5 text-[#5e6ad2]" />
-            <h3 className="mt-3 text-base font-semibold text-white">Scope & velocity tracking</h3>
-            <p className="mt-2 text-xs leading-relaxed text-[#8a8f98]">
-              Real-time velocity tracking detects scope creep early and accurately projects completion dates.
+          {/* Point 2 */}
+          <div className="text-left">
+            <TrendingUp className="h-4 w-4 text-[#8a8f98] mb-2.5" />
+            <h3 className="text-sm md:text-base font-semibold text-white">
+              Scope creep visibility
+            </h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#8a8f98]">
+              Real-time burndown analytics detect scope creep early and accurately forecast your team’s delivery progress.
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6">
-            <Flame className="h-5 w-5 text-[#5e6ad2]" />
-            <h3 className="mt-3 text-base font-semibold text-white">Cooldown periods</h3>
-            <p className="mt-2 text-xs leading-relaxed text-[#8a8f98]">
-              Give engineers dedicated time between major cycles for refactoring, tech debt, and experimenting.
+          {/* Point 3 */}
+          <div className="text-left">
+            <Zap className="h-4 w-4 text-[#8a8f98] mb-2.5" />
+            <h3 className="text-sm md:text-base font-semibold text-white">
+              No sprint ceremonies
+            </h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#8a8f98]">
+              Focus on actual shipping instead of lengthy retrospectives, estimation poker, and status meetings.
+            </p>
+          </div>
+
+          {/* Point 4 */}
+          <div className="text-left">
+            <Repeat className="h-4 w-4 text-[#8a8f98] mb-2.5" />
+            <h3 className="text-sm md:text-base font-semibold text-white">
+              Automatic rollovers
+            </h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#8a8f98]">
+              Unfinished work automatically carries over into the next cycle without manual rescheduling or triage friction.
+            </p>
+          </div>
+
+          {/* Point 5 */}
+          <div className="text-left">
+            <BarChart3 className="h-4 w-4 text-[#8a8f98] mb-2.5" />
+            <h3 className="text-sm md:text-base font-semibold text-white">
+              Predictable velocity
+            </h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#8a8f98]">
+              Track team velocity trends over time to plan realistic scopes and celebrate continuous milestones.
+            </p>
+          </div>
+
+          {/* Point 6 */}
+          <div className="text-left">
+            <Flame className="h-4 w-4 text-[#8a8f98] mb-2.5" />
+            <h3 className="text-sm md:text-base font-semibold text-white">
+              Cooldown periods
+            </h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#8a8f98]">
+              Schedule intentional pauses between cycles for bug squashing, technical debt, and exploratory projects.
             </p>
           </div>
         </div>

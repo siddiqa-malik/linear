@@ -4,7 +4,7 @@ import { Cpu, ShieldCheck, Zap } from "lucide-react";
 
 export function WorkflowsSection() {
   return (
-    <section className="relative border-t border-white/[0.06] py-28 md:py-36 bg-[#08090a]">
+    <section className="relative border-t border-white/[0.06] py-28 md:py-36 bg-[#080915]">
       {/* Central Ambient Spotlight */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center -z-10">
         <div className="h-96 w-96 rounded-full bg-[#5e6ad2]/15 blur-3xl" />

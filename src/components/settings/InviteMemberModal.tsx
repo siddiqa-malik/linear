@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/context/WorkspaceContext";
+import { useAuth } from "@/context/AuthContext";
 import { Mail, Check, Copy } from "lucide-react";
 
 interface InviteMemberModalProps {
@@ -15,6 +16,7 @@ interface InviteMemberModalProps {
 
 export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberModalProps) {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +36,7 @@ export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberMo
         role: role,
         workspaceId: currentWorkspace?._id,
         teamName: currentWorkspace?.name || "Workspace",
+        senderName: user?.name || (user?.email ? user.email.split("@")[0] : "A teammate"),
       });
 
       const link =

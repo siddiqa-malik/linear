@@ -21,9 +21,7 @@ export function HeroSection() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-24 top-28 w-[520px] h-[520px] rounded-full blur-[110px] z-0 opacity-60"
-        style={{
-          background: "radial-gradient(circle, #455EB5 0%, rgba(69, 94, 181, 0.4) 50%, transparent 80%)",
-        }}
+
       />
 
       <div className="mx-auto max-w-6xl px-6 text-center relative z-10">
@@ -66,17 +64,15 @@ export function HeroSection() {
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -inset-14 rounded-3xl blur-[90px] z-0 opacity-80"
-            style={{
-              background: "radial-gradient(ellipse 90% 80% at 50% 40%, #455EB5 0%, rgba(69, 94, 181, 0.5) 45%, rgba(69, 94, 181, 0.15) 75%, transparent 90%)",
-            }}
+
           />
 
           {/* Layer B: Centered High-Power Spotlight */}
           <GlowEffect
-            color="#455EB5"
+            color="#2e2972ff"
             variant="spotlight"
-            size="2xl"
-            blur="xl"
+            size="7xl"
+            blur="3xl"
             opacity={0.85}
             className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           />
@@ -85,13 +81,11 @@ export function HeroSection() {
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2 w-[900px] max-w-[95vw] h-[160px] rounded-full blur-[65px] z-0 opacity-75"
-            style={{
-              background: "radial-gradient(ellipse 90% 50% at 50% 50%, #5e77db 0%, #455EB5 45%, transparent 80%)",
-            }}
+
           />
 
           {/* Window Shell Frame with Illuminated Borders and Deep Ambient Rim */}
-          <div className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-xl border border-[#455EB5]/45 bg-[#0a0c1e] shadow-[0_0_60px_-10px_rgba(69,94,181,0.5),0_25px_60px_-15px_rgba(0,0,0,0.9)] ring-1 ring-white/10 transition-shadow duration-300 hover:shadow-[0_0_90px_-10px_rgba(69,94,181,0.7),0_25px_60px_-15px_rgba(0,0,0,0.95)]">
+          <div className="relative z-10 mx-auto max-w-5xl overflow-hidden rounded-xl  ">
             <img
               src="/hero image.png"
               alt="Linear Workspace Window"

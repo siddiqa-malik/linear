@@ -7,6 +7,8 @@ import { api } from "@/lib/api";
 interface UIContextType {
   theme: "dark" | "light" | "system";
   compactView: boolean;
+  emailNotifications: boolean;
+  taskReminders: boolean;
   sidebarCollapsed: boolean;
   commandPaletteOpen: boolean;
   createModalOpen: boolean;
@@ -15,6 +17,9 @@ interface UIContextType {
   activeProjectId: string | null;
   setTheme: (theme: "dark" | "light" | "system") => void;
   setCompactView: (compact: boolean) => void;
+  setEmailNotifications: (enabled: boolean) => void;
+  setTaskReminders: (enabled: boolean) => void;
+  updateUserSettings: (data: Partial<UserSettings>) => Promise<void>;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setCreateModalOpen: (open: boolean) => void;
@@ -28,6 +33,8 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export function UIProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<"dark" | "light" | "system">("dark");
   const [compactView, setCompactViewState] = useState<boolean>(false);
+  const [emailNotifications, setEmailNotificationsState] = useState<boolean>(true);
+  const [taskReminders, setTaskRemindersState] = useState<boolean>(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [createModalOpen, setCreateModalOpen] = useState<boolean>(false);
@@ -75,14 +82,51 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  /*
+   * Fetches user settings on mount from /api/settings.
+   * Backend auto-initializes defaults (theme: 'system', notifications: true, compactView: false)
+   * if no settings document exists yet for this user.
+   */
+  useEffect(() => {
+    api.get("/settings")
+      .then((res: any) => {
+        const data = res?.data || res;
+        if (data) {
+          if (data.theme) setThemeState(data.theme);
+          if (typeof data.compactView === "boolean") setCompactViewState(data.compactView);
+          if (typeof data.emailNotifications === "boolean") setEmailNotificationsState(data.emailNotifications);
+          if (typeof data.taskReminders === "boolean") setTaskRemindersState(data.taskReminders);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const updateUserSettings = async (data: Partial<UserSettings>) => {
+    if (data.theme) setThemeState(data.theme);
+    if (typeof data.compactView === "boolean") setCompactViewState(data.compactView);
+    if (typeof data.emailNotifications === "boolean") setEmailNotificationsState(data.emailNotifications);
+    if (typeof data.taskReminders === "boolean") setTaskRemindersState(data.taskReminders);
+    await api.patch("/settings", data);
+  };
+
+  const setEmailNotifications = (enabled: boolean) => {
+    setEmailNotificationsState(enabled);
+    api.patch("/settings", { emailNotifications: enabled }).catch(() => {});
+  };
+
+  const setTaskReminders = (enabled: boolean) => {
+    setTaskRemindersState(enabled);
+    api.patch("/settings", { taskReminders: enabled }).catch(() => {});
+  };
+
   const setTheme = (newTheme: "dark" | "light" | "system") => {
     setThemeState(newTheme);
-    api.put("/settings", { theme: newTheme }).catch(() => {});
+    api.patch("/settings", { theme: newTheme }).catch(() => {});
   };
 
   const setCompactView = (newCompact: boolean) => {
     setCompactViewState(newCompact);
-    api.put("/settings", { compactView: newCompact }).catch(() => {});
+    api.patch("/settings", { compactView: newCompact }).catch(() => {});
   };
 
   return (
@@ -90,6 +134,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       value={{
         theme,
         compactView,
+        emailNotifications,
+        taskReminders,
         sidebarCollapsed,
         commandPaletteOpen,
         createModalOpen,
@@ -98,6 +144,9 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         activeProjectId,
         setTheme,
         setCompactView,
+        setEmailNotifications,
+        setTaskReminders,
+        updateUserSettings,
         setSidebarCollapsed,
         setCommandPaletteOpen,
         setCreateModalOpen,

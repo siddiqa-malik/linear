@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUI } from "@/context/UIContext";
+import { GitHubImportModal } from "@/components/github/GitHubImportModal";
+import { ProfileSettingsView } from "@/components/settings/ProfileSettingsView";
 import {
   ExternalLink,
   ChevronRight,
@@ -117,11 +119,12 @@ function SettingsContent() {
 
   const { currentWorkspace, sanitizeWorkspaceName } = useWorkspace();
   const { user } = useAuth();
-  const { theme, setTheme, compactView, setCompactView } = useUI();
+  const { theme, setTheme, compactView, setCompactView, emailNotifications, setEmailNotifications, taskReminders, setTaskReminders } = useUI();
 
   // Active integration modal
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationItem | null>(null);
   const [isMigrationOpen, setIsMigrationOpen] = useState(false);
+  const [isGithubImportOpen, setIsGithubImportOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Form states
@@ -807,49 +810,54 @@ function SettingsContent() {
       {/* TAB: PROFILE (USER-LEVEL ACCOUNT)                             */}
       {/* ============================================================== */}
       {currentTab === "profile" && (
-        <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-150">
+        <ProfileSettingsView />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB: NOTIFICATIONS (USER-LEVEL PREFERENCES VIA USERSETTINGS)    */}
+      {/* ============================================================== */}
+      {currentTab === "notifications" && (
+        <div className="max-w-2xl mx-auto py-10 px-6 sm:px-8 space-y-6 animate-in fade-in duration-150 font-sans">
           <div>
-            <h1 className="text-[20px] font-semibold text-white tracking-tight mb-1">
-              Personal Profile
+            <h1 className="text-[22px] font-semibold text-white tracking-tight mb-1">
+              Notifications
             </h1>
             <p className="text-[13px] text-[#8b90a4]">
-              Manage your personal user account, avatar, and contact info.
+              Manage your personal notification preferences and alerts.
             </p>
           </div>
 
-          <div className="p-5 rounded-xl bg-[#161726] border border-[#25283e] space-y-4">
-            <div>
-              <label className="block text-[12px] font-medium text-[#8b90a4] mb-1.5">
-                Full Name
-              </label>
+          <div className="bg-[#141521] border border-[#232538] rounded-xl overflow-hidden divide-y divide-[#232538] shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4">
+              <div>
+                <h4 className="text-[13.5px] font-medium text-white mb-0.5">Email Notifications</h4>
+                <p className="text-[12px] text-[#707383]">
+                  Receive email alerts for task mentions, assignments, and workspace updates.
+                </p>
+              </div>
               <input
-                type="text"
-                defaultValue={user?.name || "Member"}
-                className="w-full bg-[#0f101a] border border-[#2a2d45] rounded-lg px-3 py-2 text-[13px] text-white outline-none focus:border-[#5e6ad2]"
+                type="checkbox"
+                checked={emailNotifications}
+                onChange={(e) => setEmailNotifications(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#5e6ad2] cursor-pointer"
               />
             </div>
 
-            <div>
-              <label className="block text-[12px] font-medium text-[#8b90a4] mb-1.5">
-                Email Address
-              </label>
+            <div className="flex items-center justify-between px-5 py-4">
+              <div>
+                <h4 className="text-[13.5px] font-medium text-white mb-0.5">Task Reminders</h4>
+                <p className="text-[12px] text-[#707383]">
+                  Get proactive reminder notifications for upcoming issue deadlines.
+                </p>
+              </div>
               <input
-                type="email"
-                disabled
-                defaultValue={user?.email || "user@linear.app"}
-                className="w-full bg-[#0f101a] border border-[#2a2d45] rounded-lg px-3 py-2 text-[13px] text-[#707383] outline-none cursor-not-allowed"
+                type="checkbox"
+                checked={taskReminders}
+                onChange={(e) => setTaskReminders(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#5e6ad2] cursor-pointer"
               />
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => showToast("Profile updated successfully")}
-            className="px-4 py-2 rounded-lg bg-[#5e6ad2] hover:bg-[#6875e5] text-white text-xs font-medium flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>Save Profile</span>
-          </button>
         </div>
       )}
 
@@ -1070,6 +1078,10 @@ function SettingsContent() {
                   key={tool.name}
                   type="button"
                   onClick={() => {
+                    if (tool.name === "GitHub Issues") {
+                      setIsGithubImportOpen(true);
+                      return;
+                    }
                     showToast(`Starting migration wizard from ${tool.name}`);
                     setIsMigrationOpen(false);
                   }}
@@ -1088,6 +1100,18 @@ function SettingsContent() {
           </div>
         </div>
       )}
+
+      {/*
+       * GitHub Import Modal enables users to import issues directly from their
+       * GitHub repositories (public or authenticated with a Personal Access Token).
+       */}
+      <GitHubImportModal
+        isOpen={isGithubImportOpen}
+        onClose={() => setIsGithubImportOpen(false)}
+        onSuccess={() => {
+          showToast("GitHub issues imported successfully!");
+        }}
+      />
     </div>
   );
 }

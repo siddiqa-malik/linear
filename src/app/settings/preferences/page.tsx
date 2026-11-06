@@ -6,7 +6,7 @@ import { Kbd } from "@/components/ui/Kbd";
 import { Monitor, Sun, Moon } from "lucide-react";
 
 export default function SettingsPreferencesPage() {
-  const { compactView, setCompactView, theme, setTheme } = useUI();
+  const { compactView, setCompactView, theme, setTheme, emailNotifications, setEmailNotifications, taskReminders, setTaskReminders } = useUI();
 
   return (
     <div className="max-w-2xl mx-auto py-10 px-6 sm:px-8 space-y-8">
@@ -67,6 +67,40 @@ export default function SettingsPreferencesPage() {
             className="w-4 h-4 rounded accent-[#5e6ad2] cursor-pointer"
           />
         </div>
+
+        {/*
+         * UserSettings Entity: Email Notifications & Task Reminders
+         * Persisted to UserSettings via PATCH /api/settings
+         */}
+        <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between">
+          <div>
+            <h4 className="text-[13px] font-medium text-white mb-0.5">Email Notifications</h4>
+            <p className="text-[12px] text-[#8a8f98]">
+              Receive email alerts for task mentions, assignments, and updates.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={emailNotifications}
+            onChange={(e) => setEmailNotifications(e.target.checked)}
+            className="w-4 h-4 rounded accent-[#5e6ad2] cursor-pointer"
+          />
+        </div>
+
+        <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between">
+          <div>
+            <h4 className="text-[13px] font-medium text-white mb-0.5">Task Reminders</h4>
+            <p className="text-[12px] text-[#8a8f98]">
+              Get proactive reminder notifications for upcoming issue due dates.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={taskReminders}
+            onChange={(e) => setTaskReminders(e.target.checked)}
+            className="w-4 h-4 rounded accent-[#5e6ad2] cursor-pointer"
+          />
+        </div>
       </div>
 
       {/* Keyboard Shortcuts Cheatsheet */}
@@ -79,7 +113,7 @@ export default function SettingsPreferencesPage() {
           </div>
           <div className="flex items-center justify-between p-2 rounded bg-white/[0.02]">
             <span className="text-[#8a8f98]">Command Menu</span>
-            <Kbd>⌘K</Kbd>
+            <Kbd>ΓîÿK</Kbd>
           </div>
           <div className="flex items-center justify-between p-2 rounded bg-white/[0.02]">
             <span className="text-[#8a8f98]">Close Modals</span>
@@ -87,7 +121,7 @@ export default function SettingsPreferencesPage() {
           </div>
           <div className="flex items-center justify-between p-2 rounded bg-white/[0.02]">
             <span className="text-[#8a8f98]">Toggle Properties</span>
-            <Kbd>⌘I</Kbd>
+            <Kbd>ΓîÿI</Kbd>
           </div>
         </div>
       </div>

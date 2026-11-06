@@ -1,12 +1,43 @@
-﻿"use client";
+"use client";
 
-import { Command, Search, Sparkles } from "lucide-react";
+import React from "react";
 
+/*
+ * Linear Keyboard Shortcut Pills
+ * Real-world shortcuts from Linear that scroll infinitely in the marquee track
+ * beneath the mechanical keyboard image.
+ */
+const SHORTCUT_PILLS = [
+  { key: "C", action: "New issue" },
+  { key: "⌘ K", action: "Command menu" },
+  { key: "G then I", action: "Go to inbox" },
+  { key: "Space", action: "Quick peek" },
+  { key: "X", action: "Select issue" },
+  { key: "S", action: "Set status" },
+  { key: "P", action: "Change priority" },
+  { key: "A", action: "Assign user" },
+  { key: "L", action: "Add label" },
+  { key: "D", action: "Set due date" },
+  { key: "E", action: "Edit title" },
+  { key: "⌘ ↵", action: "Save & submit" },
+  { key: "Tab", action: "Next field" },
+  { key: "B", action: "Toggle sidebar" },
+  { key: "1-4", action: "Priority levels" },
+  { key: "O", action: "Open issue" },
+];
+
+/*
+ * BentoSection Component (Landing Page)
+ *
+ * Implements the Linear "Unlike any tool you've used before" 4-card Bento grid
+ * matching the canonical design from media_1791442560395.png with centered text.
+ */
 export function BentoSection() {
   return (
-    <section id="features" className="relative py-28 md:py-36">
-      {/* Background radial spotlight */}
-      <div className="pointer-events-none absolute inset-0 linear-ambient-spotlight -z-10" />
+    <section id="features" className="relative py-28 md:py-36 overflow-hidden select-none">
+      {/* Background deep purple ambient lighting spotlights that shine through the translucent glass cards */}
+      <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-[radial-gradient(ellipse_at_center,rgba(94,106,210,0.22),rgba(40,30,80,0.12)_60%,transparent_80%)] blur-3xl -z-10" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[950px] h-[500px] bg-[radial-gradient(ellipse_at_center,rgba(110,80,220,0.18),rgba(25,18,55,0.08)_65%,transparent_85%)] blur-3xl -z-10" />
 
       <div className="mx-auto max-w-6xl px-6">
         {/* Section Header */}
@@ -24,142 +55,135 @@ export function BentoSection() {
 
         {/* 4-Card Bento Grid */}
         <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-12">
-          {/* Card 1: Keyboard First (Wide, col-span-7) */}
-          <div className="linear-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-8 md:col-span-7">
-            <div>
-              {/* Keyboard Visual */}
-              <div className="relative mx-auto my-6 flex max-w-md flex-col gap-2 rounded-xl border border-white/[0.08] bg-[#0c0d12] p-4 shadow-xl">
-                <div className="flex justify-center gap-1.5">
-                  {["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].map((k) => (
-                    <div
-                      key={k}
-                      className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-[#14151b] text-xs font-medium text-white/70 shadow-sm"
-                    >
-                      {k}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-center gap-1.5">
-                  {["A", "S", "D", "F", "G", "H", "J", "K", "L"].map((k) => (
-                    <div
-                      key={k}
-                      className={`flex h-8 w-8 items-center justify-center rounded border text-xs font-medium shadow-sm transition ${
-                        k === "K"
-                          ? "border-[#5e6ad2] bg-[#5e6ad2]/20 text-white font-bold shadow-[0_0_12px_rgba(94,106,210,0.5)]"
-                          : "border-white/10 bg-[#14151b] text-white/70"
-                      }`}
-                    >
-                      {k}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-center gap-1.5">
-                  {["Z", "X", "C", "V", "B", "N", "M"].map((k) => (
-                    <div
-                      key={k}
-                      className={`flex h-8 w-8 items-center justify-center rounded border text-xs font-medium shadow-sm transition ${
-                        k === "C"
-                          ? "border-[#5e6ad2] bg-[#5e6ad2]/20 text-white font-bold shadow-[0_0_12px_rgba(94,106,210,0.5)]"
-                          : "border-white/10 bg-[#14151b] text-white/70"
-                      }`}
-                    >
-                      {k}
-                    </div>
-                  ))}
-                </div>
-                {/* Spacebar & Command */}
-                <div className="flex justify-center gap-2 pt-1">
-                  <div className="flex h-8 items-center rounded border border-[#5e6ad2] bg-[#5e6ad2]/20 px-3 text-xs font-bold text-white shadow-[0_0_12px_rgba(94,106,210,0.5)]">
-                    ⌘ CMD
+          {/* ============================================================== */}
+          {/* CARD 1: Built for purpose (Keyboard + Moving Shortcut Capsules) */}
+          {/* ============================================================== */}
+          <div className="linear-bento-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-7 sm:p-8 md:col-span-7 before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_top,rgba(130,120,240,0.10),transparent_70%)] before:pointer-events-none">
+            {/* Top: Keyboard visual sitting directly on card surface */}
+            <div className="relative pt-2 pb-1 flex items-center justify-center">
+              <img
+                src="/keyboard.png"
+                alt="Linear Keyboard Experience"
+                className="w-full max-w-[480px] h-auto object-contain select-none pointer-events-none drop-shadow-[0_12px_32px_rgba(0,0,0,0.5)]"
+              />
+            </div>
+
+            {/* Middle: Continuous Moving Shortcut Key Capsules Marquee */}
+            <div className="relative w-full overflow-hidden my-3 py-1.5 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+              <div className="animate-bento-marquee flex items-center gap-2">
+                {/* First sequence of shortcut capsules */}
+                {SHORTCUT_PILLS.map((s, idx) => (
+                  <div
+                    key={`p1-${idx}`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] backdrop-blur-md shadow-sm whitespace-nowrap text-xs text-[#a0a5b8]"
+                  >
+                    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-white text-[10.5px] font-mono font-semibold border border-white/10 shadow-sm">
+                      {s.key}
+                    </kbd>
+                    <span className="text-[11.5px] text-[#c4c8db] font-normal">
+                      {s.action}
+                    </span>
                   </div>
-                  <div className="h-8 w-44 rounded border border-white/10 bg-[#14151b]" />
-                  <div className="flex h-8 items-center rounded border border-white/10 bg-[#14151b] px-3 text-xs text-white/70">
-                    ↵ Return
+                ))}
+                {/* Second duplicate sequence for infinite seamless loop */}
+                {SHORTCUT_PILLS.map((s, idx) => (
+                  <div
+                    key={`p2-${idx}`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] backdrop-blur-md shadow-sm whitespace-nowrap text-xs text-[#a0a5b8]"
+                  >
+                    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-white text-[10.5px] font-mono font-semibold border border-white/10 shadow-sm">
+                      {s.key}
+                    </kbd>
+                    <span className="text-[11.5px] text-[#c4c8db] font-normal">
+                      {s.action}
+                    </span>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-white">Built for speed</h3>
-              <p className="mt-1 text-sm text-[#8a8f98]">
-                Keyboard shortcuts for every single action so you never leave the flow. Press <kbd className="rounded border border-white/15 bg-white/5 px-1 py-0.5 text-xs text-white">C</kbd> to create, <kbd className="rounded border border-white/15 bg-white/5 px-1 py-0.5 text-xs text-white">⌘K</kbd> to search.
+            {/* Bottom: Typography (Centered) */}
+            <div className="mt-4 text-center">
+              <h3 className="text-lg font-semibold text-white tracking-tight">
+                Built for purpose
+              </h3>
+              <p className="mt-1.5 text-sm text-[#8a8f98] leading-relaxed max-w-lg mx-auto">
+                Linear is shaped by the practices and principles that underpin how world-class software teams operate.
               </p>
             </div>
           </div>
 
-          {/* Card 2: Lightning Performance (col-span-5) */}
-          <div className="linear-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-8 md:col-span-5">
-            <div className="flex h-48 items-center justify-center">
-              {/* Electric Neon Lightning Bolt */}
-              <div className="relative flex items-center justify-center">
-                <div className="absolute h-32 w-32 rounded-full bg-[#5e6ad2]/20 blur-xl transition group-hover:bg-[#5e6ad2]/35" />
-                <svg
-                  className="relative h-28 w-28 text-[#6875e5] drop-shadow-[0_0_18px_rgba(94,106,210,0.8)]"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" />
-                </svg>
-              </div>
+          {/* ============================================================== */}
+          {/* CARD 2: Breathtakingly fast (Lightning, col-span-5)            */}
+          {/* ============================================================== */}
+          <div className="linear-bento-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-7 sm:p-8 md:col-span-5 before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_top,rgba(130,120,240,0.10),transparent_70%)] before:pointer-events-none">
+            {/* Clean enlarged lightning icon */}
+            <div className="relative my-4 flex items-center justify-center min-h-[220px]">
+              <img
+                src="/fast-icon.png"
+                alt="Breathtakingly Fast Performance"
+                className="w-40 sm:w-48 h-auto max-h-56 object-contain select-none pointer-events-none"
+              />
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-white">Instant sync & offline-first</h3>
-              <p className="mt-1 text-sm text-[#8a8f98]">
-                Changes sync across all clients in real-time with zero loading spinners and sub-50ms latency.
+            {/* Bottom: Typography (Centered) */}
+            <div className="mt-6 text-center">
+              <h3 className="text-lg font-semibold text-white tracking-tight">
+                Breathtakingly fast
+              </h3>
+              <p className="mt-1.5 text-sm text-[#8a8f98] leading-relaxed max-w-sm mx-auto">
+                Built for speed with 50ms interactions and real-time sync across all clients with zero spinners.
               </p>
             </div>
           </div>
 
-          {/* Card 3: Linear Method (col-span-5) */}
-          <div className="linear-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-8 md:col-span-5">
-            <div className="flex h-44 items-center justify-center">
-              {/* Geometric Orbital Arc Rings */}
-              <div className="relative flex h-32 w-32 items-center justify-center">
-                <div className="absolute h-32 w-32 rounded-full border border-dashed border-white/15" />
-                <div className="absolute h-24 w-24 rounded-full border border-[#5e6ad2]/40" />
-                <div className="absolute h-16 w-16 rounded-full border border-white/20" />
-                <div className="h-4 w-4 rounded-full bg-[#5e6ad2] shadow-[0_0_14px_rgba(94,106,210,1)]" />
-              </div>
+          {/* ============================================================== */}
+          {/* CARD 3: Designed for modern software teams (Arc Ring, col-5)   */}
+          {/* ============================================================== */}
+          <div className="linear-bento-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-7 sm:p-8 md:col-span-5 before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_top,rgba(130,120,240,0.10),transparent_70%)] before:pointer-events-none">
+            {/* Clean enlarged geometric arc ring icon */}
+            <div className="relative my-4 flex items-center justify-center min-h-[220px]">
+              <img
+                src="/teams-icon.png"
+                alt="Designed for Modern Software Teams"
+                className="w-44 sm:w-52 h-auto max-h-52 object-contain select-none pointer-events-none"
+              />
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-white">The Linear Method</h3>
-              <p className="mt-1 text-sm text-[#8a8f98]">
-                Opinionated workflows built from the real-world practices of top tech teams. Streamlined, low-ceremony.
+            {/* Bottom: Typography (Centered) */}
+            <div className="mt-6 text-center">
+              <h3 className="text-lg font-semibold text-white tracking-tight">
+                Designed for modern software teams
+              </h3>
+              <p className="mt-1.5 text-sm text-[#8a8f98] leading-relaxed max-w-sm mx-auto">
+                Comes with built-in best practices, opinionated workflows, and no unnecessary bloat.
               </p>
             </div>
           </div>
 
-          {/* Card 4: Command Menu (col-span-7) */}
-          <div className="linear-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-8 md:col-span-7">
-            <div className="mx-auto w-full max-w-md rounded-xl border border-white/10 bg-[#0c0d12] p-3 shadow-2xl">
-              <div className="flex items-center gap-2 border-b border-white/[0.06] pb-2 text-xs text-[#8a8f98]">
-                <Search className="h-3.5 w-3.5 text-[#62666d]" />
-                <span className="text-white/80">Type a command or search...</span>
-              </div>
-              <div className="mt-2 space-y-1 text-xs">
-                <div className="flex items-center justify-between rounded bg-[#5e6ad2]/20 px-2.5 py-1.5 text-white">
-                  <span>Create new issue</span>
-                  <kbd className="rounded border border-white/10 bg-white/5 px-1 text-[10px]">C</kbd>
-                </div>
-                <div className="flex items-center justify-between rounded px-2.5 py-1.5 text-[#8a8f98] hover:bg-white/[0.04] hover:text-white">
-                  <span>Change task status to In Progress</span>
-                  <kbd className="rounded border border-white/10 bg-white/5 px-1 text-[10px]">S</kbd>
-                </div>
-                <div className="flex items-center justify-between rounded px-2.5 py-1.5 text-[#8a8f98] hover:bg-white/[0.04] hover:text-white">
-                  <span>Assign to Alex Saddi</span>
-                  <kbd className="rounded border border-white/10 bg-white/5 px-1 text-[10px]">A</kbd>
-                </div>
-              </div>
+          {/* ============================================================== */}
+          {/* CARD 4: Meet your command line (Text First, Image After)       */}
+          {/* ============================================================== */}
+          <div className="linear-bento-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-7 sm:p-8 md:col-span-7 before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_top,rgba(130,120,240,0.10),transparent_70%)] before:pointer-events-none">
+            {/* Top: Typography (Centered) */}
+            <div className="mb-4 text-center">
+              <h3 className="text-lg font-semibold text-white tracking-tight">
+                Meet your command line
+              </h3>
+              <p className="mt-1.5 text-sm text-[#8a8f98] leading-relaxed max-w-lg mx-auto">
+                Complete any action in seconds with the global command menu. Search, triage, and update with simple keystrokes.
+              </p>
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-white">Command line at your fingertips</h3>
-              <p className="mt-1 text-sm text-[#8a8f98]">
-                Search across projects, change statuses, assign members, and triage tasks in a split second.
-              </p>
+            {/* Bottom: Image after the text with enhanced grey saturation background container */}
+            <div className="relative mt-auto pt-3 flex items-center justify-center min-h-[190px]">
+              <div className="w-full max-w-[460px] rounded-xl bg-[#262838]/90 border border-white/[0.14] p-3.5 sm:p-4 shadow-2xl backdrop-blur-md">
+                <img
+                  src="/command-icon.png"
+                  alt="Global Command Menu"
+                  className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+                />
+              </div>
             </div>
           </div>
         </div>
