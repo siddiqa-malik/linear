@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -44,7 +44,7 @@ const AVAILABLE_COLORS = [
   "#6b7280", // Gray
 ];
 
-export default function TeamGeneralSettingsPage() {
+function TeamGeneralSettingsContent() {
   const params = useParams();
   const router = useRouter();
   const teamId = params?.teamId as string;
@@ -418,5 +418,26 @@ export default function TeamGeneralSettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/*
+ * Dynamic Team General Settings Page exported with a Suspense boundary.
+ * In Next.js 16 with Partial Prerendering / Cache Components enabled, wrapping
+ * Client Components that consume useParams() in Suspense allows Next.js to prerender
+ * an instant shell without triggering prerender dynamic-access errors.
+ */
+export default function TeamGeneralSettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-xs text-[#707383] flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-[#5e6ad2]" />
+          <span>Loading team settings...</span>
+        </div>
+      }
+    >
+      <TeamGeneralSettingsContent />
+    </Suspense>
   );
 }

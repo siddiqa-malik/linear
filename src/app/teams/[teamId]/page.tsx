@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/workspace/Sidebar";
@@ -240,7 +240,7 @@ function TeamBadge({
   );
 }
 
-export default function TeamOverviewPage() {
+function TeamOverviewContent() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -1506,5 +1506,25 @@ export default function TeamOverviewPage() {
         )}
       </div>
     </AuthGuard>
+  );
+}
+
+/*
+ * Dynamic Team Overview Page exported with a Suspense boundary.
+ * In Next.js 16 with Partial Prerendering / Cache Components enabled, wrapping
+ * Client Components that consume useParams() in Suspense allows Next.js to prerender
+ * an instant shell without triggering prerender dynamic-access errors.
+ */
+export default function TeamOverviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen bg-[#08090a] items-center justify-center text-[#8a8f98]">
+          <Loader2 className="w-5 h-5 animate-spin text-[#5e6ad2]" />
+        </div>
+      }
+    >
+      <TeamOverviewContent />
+    </Suspense>
   );
 }

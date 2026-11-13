@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -310,7 +310,7 @@ const PRIORITY_LIST = [
   { key: "none", label: "No priority" },
 ];
 
-export default function ProjectDetailPage() {
+function ProjectDetailContent() {
   const params = useParams();
   const router = useRouter();
   const projectId = params?.projectId as string;
@@ -1889,5 +1889,25 @@ export default function ProjectDetailPage() {
         )}
       </div>
     </AuthGuard>
+  );
+}
+
+/*
+ * Dynamic Project Detail Page exported with a Suspense boundary.
+ * In Next.js 16 with Partial Prerendering / Cache Components enabled, wrapping
+ * Client Components that consume useParams() in Suspense allows Next.js to prerender
+ * an instant shell without triggering prerender dynamic-access errors.
+ */
+export default function ProjectDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen bg-[#08090a] items-center justify-center text-[#8a8f98]">
+          <Loader2 className="w-5 h-5 animate-spin text-[#5e6ad2]" />
+        </div>
+      }
+    >
+      <ProjectDetailContent />
+    </Suspense>
   );
 }

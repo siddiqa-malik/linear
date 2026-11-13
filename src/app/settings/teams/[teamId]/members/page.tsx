@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -46,7 +46,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sparkles,
 };
 
-export default function TeamMembersPage() {
+function TeamMembersContent() {
   const params = useParams();
   const router = useRouter();
   const teamId = params?.teamId as string;
@@ -528,5 +528,26 @@ export default function TeamMembersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/*
+ * Dynamic Team Members Page exported with a Suspense boundary.
+ * In Next.js 16 with Partial Prerendering / Cache Components enabled, wrapping
+ * Client Components that consume useParams() in Suspense allows Next.js to prerender
+ * an instant shell without triggering prerender dynamic-access errors.
+ */
+export default function TeamMembersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-xs text-[#707383] flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-[#5e6ad2]" />
+          <span>Loading team members...</span>
+        </div>
+      }
+    >
+      <TeamMembersContent />
+    </Suspense>
   );
 }
