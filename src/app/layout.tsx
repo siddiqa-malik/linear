@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import React, { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { WorkspaceProvider } from "@/context/WorkspaceContext";
@@ -43,8 +44,10 @@ export default function RootLayout({
             <UIProvider>
               {children}
               <CommandPalette />
-              <GlobalCreateIssueModal />
-              <GlobalCreateProjectModal />
+              <Suspense fallback={null}>
+                <GlobalCreateIssueModal />
+                <GlobalCreateProjectModal />
+              </Suspense>
               <ProjectDrawer />
             </UIProvider>
           </WorkspaceProvider>

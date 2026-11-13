@@ -1,15 +1,35 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
+import { notFound } from "next/navigation";
 import { BLOG_POSTS, FEATURED_POST } from "../data";
 import { NewsletterSection } from "../components/NewsletterSection";
 import { ArrowLeft } from "lucide-react";
 
-export default function BlogPostPage() {
-  const params = useParams();
-  const slug = params?.slug as string;
+/*
+ * generateStaticParams
+ * Pre-computes all available blog post slugs during build time.
+ * This enables full static generation (SSG) in Next.js 16 and prevents
+ * runtime URL data dynamic errors.
+ */
+export function generateStaticParams() {
+  const allPosts = [FEATURED_POST, ...BLOG_POSTS];
+  return allPosts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+
+/*
+ * BlogPostPage Component (Server Component)
+ *
+ * Renders an individual blog article based on the static data matching
+ * the requested slug. In Next.js 15+, dynamic route `params` is a Promise.
+ */
+export default async function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
 
   const allPosts = [FEATURED_POST, ...BLOG_POSTS];
   const post = allPosts.find((p) => p.slug === slug);
@@ -81,7 +101,7 @@ export default function BlogPostPage() {
           </h2>
 
           <p>
-            Every feature we design starts with a simple question: does this give creators more clarity and agency to do their life's work? As we continue to evolve our platform, we look forward to sharing more deep-dives into our engineering architecture, design decisions, and company practices.
+            Every feature we design starts with a simple question: does this give creators more clarity and agency to do their life&apos;s work? As we continue to evolve our platform, we look forward to sharing more deep-dives into our engineering architecture, design decisions, and company practices.
           </p>
         </div>
       </div>
